@@ -57,31 +57,31 @@
         .sold-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             backdrop-filter: blur(5px);
-        }
-        .sold-overlay.active {
-            display: flex;
             flex-direction: column;
             gap: 40px;
         }
+        .sold-overlay.active {
+            display: flex;
+        }
         .hammer-animation {
-            font-size: 5rem;
+            font-size: 6rem;
             text-align: center;
-            animation: hammerHit 0.6s ease-in-out;
+            animation: hammerHit 0.8s ease-in-out infinite;
         }
         @keyframes hammerHit {
-            0% { transform: rotate(-45deg) translateY(-30px); }
+            0% { transform: rotate(-45deg) translateY(-40px); }
             50% { transform: rotate(0deg) translateY(0px); }
-            100% { transform: rotate(10deg) translateY(5px); }
+            100% { transform: rotate(10deg) translateY(10px); }
         }
         .sold-message {
             text-align: center;
-            font-size: 3.5rem;
+            font-size: 4rem;
             font-weight: bold;
             background: linear-gradient(90deg, #fbbf24 0%, #f97316 100%);
             -webkit-background-clip: text;
@@ -95,22 +95,24 @@
         }
         .sold-details {
             text-align: center;
-            font-size: 1.3rem;
+            font-size: 1.5rem;
             color: #a5f3fc;
+            animation: slideIn 0.6s ease-out;
         }
         .waiting-message {
             text-align: center;
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             color: #fbbf24;
             margin-top: 20px;
+            animation: slideIn 0.8s ease-out;
         }
     </style>
 </head>
 <body>
     <div class="sold-overlay" id="soldOverlay">
         <div class="hammer-animation">🔨</div>
-        <div class="sold-message" id="soldMessage">SOLD!</div>
-        <div class="sold-details" id="soldDetails">Winner: John - RM 600,000</div>
+        <div class="sold-message">SOLD!</div>
+        <div class="sold-details" id="soldDetails">赢家: John - RM 600,000</div>
         <div class="waiting-message">⏳ 等待老师进入下一件房产...</div>
     </div>
 
@@ -197,9 +199,9 @@
 
         let userName = '';
         let currentProperty = 1;
-        let lastSeenStatus = null;
         let properties = null;
         let bidders = null;
+        let soldShown = false;
 
         async function joinAuction() {
             const input = document.getElementById('userNameInput');
@@ -236,15 +238,17 @@
                 }
                 
                 if (allProps && allProps.length > 0) {
+                    // 找状态为 open 的房产
                     const openProp = allProps.find(p => p.status === 'open');
+                    
                     if (openProp) {
                         properties = openProp;
                         currentProperty = properties.id;
-                        
-                        if (lastSeenStatus === 'open' && properties.status === 'sold') {
-                            showSoldOverlay();
-                        }
-                        lastSeenStatus = properties.status;
+                        soldShown = false;
+                    } else {
+                        // 没有 open 的房产，显示最后一个
+                        properties = allProps[allProps.length - 1];
+                        currentProperty = properties.id;
                     }
                     
                     const { data: biddersData } = await sb.from('bidders').select('*').eq('property_id', currentProperty);
@@ -252,6 +256,12 @@
                 }
 
                 updateUI();
+
+                // 检查成交状态
+                if (properties && properties.status === 'sold' && !soldShown) {
+                    soldShown = true;
+                    showSoldOverlay();
+                }
             } catch (err) {
                 console.error('加载错误:', err);
             }
@@ -322,7 +332,6 @@
 
         function showSoldOverlay() {
             if (!properties) return;
-            document.getElementById('soldMessage').textContent = 'SOLD! 🎉';
             document.getElementById('soldDetails').textContent = `赢家: ${properties.highest_bidder} - RM ${properties.current_price.toLocaleString()}`;
             document.getElementById('soldOverlay').classList.add('active');
         }
@@ -344,7 +353,7 @@
             document.getElementById('propertyDescription').textContent = info.description;
             document.getElementById('openingPrice').textContent = `RM ${info.openingBid.toLocaleString()}`;
             document.getElementById('currentPrice').textContent = `RM ${properties.current_price.toLocaleString()}`;
-            document.getElementById('highBidder').textContent = properties.highest_bidder;
+            document.getElementById('highBidder').textContent = properties.highest_bidder || '等待中...';
             document.getElementById('minBidDisplay').textContent = `RM ${minBid.toLocaleString()}`;
             document.getElementById('propertyInfo').textContent = `正在竞拍房产 ${currentProperty}/4`;
 
