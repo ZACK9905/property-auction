@@ -14,49 +14,61 @@
             min-height: 100vh;
         }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        .header { padding: 30px 0; margin-bottom: 40px; }
-        .header h1 { font-size: 2.5rem; background: linear-gradient(90deg, #a5f3fc 0%, #60a5fa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header { padding: 30px 0; margin-bottom: 40px; border-bottom: 1px solid rgba(34, 211, 238, 0.3); }
+        .header h1 { font-size: 2.5rem; background: linear-gradient(90deg, #a5f3fc 0%, #60a5fa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 15px; }
         .input-group { display: flex; gap: 10px; max-width: 400px; margin-bottom: 20px; }
-        input { flex: 1; padding: 12px; background: rgba(30, 58, 138, 0.5); border: 1px solid rgba(34, 211, 238, 0.5); border-radius: 8px; color: white; }
-        button { padding: 12px 24px; background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 100%); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; }
+        input { flex: 1; padding: 12px; background: rgba(30, 58, 138, 0.5); border: 1px solid rgba(34, 211, 238, 0.5); border-radius: 8px; color: white; font-size: 1rem; }
+        input::placeholder { color: rgba(147, 197, 253, 0.5); }
+        button { padding: 12px 24px; background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 100%); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 0 20px rgba(34, 211, 238, 0.5); }
         .main-content { display: grid; grid-template-columns: 1fr 350px; gap: 30px; }
-        .auction-card { background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(30, 99, 145, 0.4)); border: 1px solid rgba(34, 211, 238, 0.3); border-radius: 20px; padding: 40px; }
+        @media (max-width: 1024px) { .main-content { grid-template-columns: 1fr; } }
+        .auction-card { background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(30, 99, 145, 0.4)); border: 1px solid rgba(34, 211, 238, 0.3); border-radius: 20px; padding: 40px; backdrop-filter: blur(10px); }
         .property-image { font-size: 4rem; text-align: center; padding: 40px 0; }
-        .property-address { font-size: 2rem; font-weight: bold; margin: 10px 0; }
+        .property-address { font-size: 2rem; font-weight: bold; margin: 20px 0 10px 0; }
         .property-description { color: #93c5fd; font-size: 1.1rem; margin-bottom: 30px; }
         .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
         .price-box { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 20px; }
+        .price-box.active { background: rgba(6, 182, 212, 0.2); border: 1px solid rgba(34, 211, 238, 0.5); box-shadow: 0 0 20px rgba(34, 211, 238, 0.3); }
+        .price-label { font-size: 0.85rem; color: #93c5fd; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
         .price-amount { font-size: 2rem; font-weight: bold; color: #a5f3fc; }
         .bidder-info { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 30px; }
         .bidder-name { font-size: 1.5rem; font-weight: bold; color: #06b6d4; }
+        .calling-status { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 30px; text-align: center; }
+        .calling-status.hidden { display: none; }
+        .calling-text { font-size: 1.8rem; font-weight: bold; margin-bottom: 15px; }
+        .calling-text.first { color: #fbbf24; }
+        .calling-text.second { color: #f97316; }
+        .calling-text.third { color: #ef4444; }
+        .calling-timer { font-size: 3rem; font-weight: bold; font-family: 'Courier New', monospace; color: #a5f3fc; animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         .bid-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
         .bid-btn { padding: 16px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; color: white; background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); }
+        .bid-btn:hover { box-shadow: 0 0 20px rgba(6, 182, 212, 0.5); }
         .bidders-list { background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(30, 99, 145, 0.4)); border: 1px solid rgba(34, 211, 238, 0.3); border-radius: 20px; padding: 25px; max-height: 700px; overflow-y: auto; }
-        .bidder-item { padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; }
+        .bidder-item { padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .hidden { display: none; }
-        .error { color: #fca5a5; padding: 10px; margin: 10px 0; }
-        .success { color: #86efac; padding: 10px; margin: 10px 0; }
+        .message { padding: 16px; background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.5); border-radius: 10px; color: #86efac; text-align: center; font-weight: 600; animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .welcome-text { color: #06b6d4; font-weight: 600; font-size: 1.1rem; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🔨 KL Property Auction Live</h1>
-        </div>
-
-        <div id="userInputSection">
-            <div class="input-group">
-                <input type="text" id="userNameInput" placeholder="输入你的名字..." />
-                <button onclick="joinAuction()">加入竞拍</button>
+            <div id="userInputSection">
+                <div class="input-group">
+                    <input type="text" id="userNameInput" placeholder="输入你的名字..." />
+                    <button onclick="joinAuction()">加入竞拍</button>
+                </div>
             </div>
-            <div id="statusMsg"></div>
+            <div id="welcomeText" class="welcome-text hidden">
+                欢迎, <span id="displayName"></span> 👋 | 参与人数: <span id="participantCount">0</span>/20
+            </div>
         </div>
 
-        <div id="welcomeText" class="hidden">
-            <p style="color: #06b6d4;">欢迎, <span id="displayName"></span> 👋 | 参与人数: <span id="participantCount">0</span></p>
-        </div>
-
-        <div id="mainContent" class="hidden" style="margin-top: 40px;">
+        <div id="mainContent" class="hidden">
             <div class="main-content">
                 <div class="auction-card">
                     <div class="property-image" id="propertyImage">🏢</div>
@@ -65,21 +77,26 @@
 
                     <div class="price-grid">
                         <div class="price-box">
-                            <div style="color: #93c5fd; font-size: 0.9rem; margin-bottom: 8px;">起价</div>
+                            <div class="price-label">起价</div>
                             <div class="price-amount" id="openingPrice">RM 500,000</div>
                         </div>
-                        <div class="price-box" style="background: rgba(6, 182, 212, 0.2);">
-                            <div style="color: #93c5fd; font-size: 0.9rem; margin-bottom: 8px;">当前出价</div>
-                            <div class="price-amount" id="currentPrice">RM 550,000</div>
+                        <div class="price-box active">
+                            <div class="price-label">当前出价</div>
+                            <div class="price-amount" id="currentPrice">RM 500,000</div>
                         </div>
                     </div>
 
                     <div class="bidder-info">
-                        <div style="color: #93c5fd; font-size: 0.8rem; margin-bottom: 10px;">最高竞价者</div>
+                        <div class="price-label">最高竞价者</div>
                         <div class="bidder-name" id="highBidder">等待中...</div>
                     </div>
 
-                    <div style="font-size: 0.9rem; color: #93c5fd; margin-bottom: 15px;">下一个出价必须至少: <strong style="color: #06b6d4; font-size: 1.1rem;" id="minBidDisplay">RM 555,000</strong></div>
+                    <div id="callingStatusDiv" class="calling-status hidden">
+                        <div class="calling-text" id="callingText">1st Calling</div>
+                        <div class="calling-timer" id="callingTimer">10</div>
+                    </div>
+
+                    <div style="font-size: 0.9rem; color: #93c5fd; margin-bottom: 15px;">下一个出价必须至少: <strong style="color: #06b6d4; font-size: 1.1rem;" id="minBidDisplay">RM 505,000</strong></div>
 
                     <div class="bid-buttons">
                         <button class="bid-btn" onclick="placeBid(5000)">+RM 5,000</button>
@@ -88,7 +105,7 @@
                         <button class="bid-btn" onclick="placeBid(25000)">+RM 25,000</button>
                     </div>
 
-                    <div id="messageBox" class="hidden" style="padding: 16px; background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.5); border-radius: 10px; color: #86efac;"></div>
+                    <div id="messageBox" class="hidden"></div>
                 </div>
 
                 <div class="bidders-list">
@@ -102,20 +119,20 @@
     <script>
         const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MzM3NDEsImV4cCI6MjA4MzUwOTc0MX0.fxlPFVuHlwLG56bPOeP2s6qsoQn5aEgeBrdHfkvjvyM';
-        const TABLE_NAME = 'Auction';
 
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        const properties = [
-            { id: 1, address: 'Pavilion KL - 豪华公寓', image: '🏢', openingBid: 500000, increment: 5000, description: '吉隆坡中心高端住宅' },
-            { id: 2, address: 'Petaling Jaya - 现代住宅', image: '🏡', openingBid: 350000, increment: 5000, description: '家庭友善的现代住宅' },
-            { id: 3, address: 'Bangsar - 豪宅', image: '🏰', openingBid: 650000, increment: 10000, description: '高端社区的独立豪宅' },
-            { id: 4, address: 'Subang Jaya - 公寓', image: '🏙️', openingBid: 400000, increment: 5000, description: '现代化城市公寓' },
-        ];
+        const propertyInfo = {
+            1: { address: 'Pavilion KL - 豪华公寓', image: '🏢', openingBid: 500000, increment: 5000, description: '吉隆坡中心高端住宅' },
+            2: { address: 'Petaling Jaya - 现代住宅', image: '🏡', openingBid: 350000, increment: 5000, description: '家庭友善的现代住宅' },
+            3: { address: 'Bangsar - 豪宅', image: '🏰', openingBid: 650000, increment: 10000, description: '高端社区的独立豪宅' },
+            4: { address: 'Subang Jaya - 公寓', image: '🏙️', openingBid: 400000, increment: 5000, description: '现代化城市公寓' },
+        };
 
         let userName = '';
         let selectedProperty = 1;
-        let auctionData = null;
+        let properties = null;
+        let bidders = null;
 
         async function joinAuction() {
             const input = document.getElementById('userNameInput');
@@ -128,69 +145,93 @@
             document.getElementById('displayName').textContent = userName;
             document.getElementById('mainContent').classList.remove('hidden');
 
-            // 实时订阅
-            sb.channel('auction-changes')
-                .on('postgres_changes', { 
-                    event: '*', 
-                    schema: 'public', 
-                    table: TABLE_NAME 
-                }, () => {
-                    loadData();
-                })
+            // 实时监听
+            sb.channel('properties-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => loadData())
                 .subscribe();
 
-            setInterval(loadData, 1000);
+            sb.channel('bidders-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'bidders' }, () => loadData())
+                .subscribe();
+
+            // 定期更新定时器
+            setInterval(updateTimers, 1000);
+            setInterval(loadData, 500);
+
             await loadData();
         }
 
         async function loadData() {
             try {
-                const { data, error } = await sb.from(TABLE_NAME).select('*');
-                if (error) {
-                    console.error('读取错误:', error);
-                    return;
-                }
-                auctionData = data;
+                const { data: propsData } = await sb.from('properties').select('*').eq('id', selectedProperty);
+                const { data: biddersData } = await sb.from('bidders').select('*').eq('property_id', selectedProperty);
+                
+                if (propsData) properties = propsData[0];
+                if (biddersData) bidders = biddersData;
+
                 updateUI();
             } catch (err) {
-                console.error('错误:', err);
+                console.error('加载错误:', err);
             }
         }
 
         async function placeBid(increment) {
-            if (!auctionData) return;
+            if (!properties) return;
 
             try {
-                const current = properties.find(p => p.id === selectedProperty);
-                
-                // 找到该房产的当前出价
-                const propertyData = auctionData.find(row => row.id === selectedProperty);
-                if (!propertyData) {
-                    alert('房产未找到！');
-                    return;
-                }
+                const bidAmount = properties.current_price + increment;
 
-                const currentPrice = propertyData.current_price || current.openingBid;
-                const bidAmount = currentPrice + increment;
+                // 更新 properties
+                await sb.from('properties')
+                    .update({
+                        current_price: bidAmount,
+                        highest_bidder: userName,
+                        stage: 1,
+                        timer: 10
+                    })
+                    .eq('id', selectedProperty);
 
-                // 更新该房产记录
-                const { error } = await sb.from(TABLE_NAME).update({ 
-                    current_price: bidAmount,
-                    bidder_name: userName,
-                    stage: 1,
-                    timer: 10
-                }).eq('id', selectedProperty);
-
-                if (error) {
-                    console.error('出价错误:', error);
-                    showMessage('❌ 出价失败: ' + error.message);
-                    return;
-                }
+                // 插入到 bidders 历史
+                await sb.from('bidders')
+                    .insert({
+                        property_id: selectedProperty,
+                        bidder_name: userName,
+                        bid_amount: bidAmount
+                    });
 
                 showMessage(`✓ ${userName} 成功出价 RM ${bidAmount.toLocaleString()}`);
                 await loadData();
             } catch (err) {
-                console.error('错误:', err);
+                console.error('出价错误:', err);
+                showMessage('❌ 出价失败');
+            }
+        }
+
+        async function updateTimers() {
+            if (!properties) return;
+
+            try {
+                if (properties.stage > 0) {
+                    if (properties.timer > 0) {
+                        await sb.from('properties')
+                            .update({ timer: properties.timer - 1 })
+                            .eq('id', selectedProperty);
+                    } else if (properties.stage < 3) {
+                        const nextStage = properties.stage + 1;
+                        const nextTimer = nextStage === 3 ? 5 : 10;
+                        await sb.from('properties')
+                            .update({ stage: nextStage, timer: nextTimer })
+                            .eq('id', selectedProperty);
+                    } else {
+                        // 成交
+                        await sb.from('properties')
+                            .update({ stage: 0, timer: 0, status: 'sold' })
+                            .eq('id', selectedProperty);
+                        showSoldMessage();
+                    }
+                }
+            } catch (err) {
+                console.error('定时器错误:', err);
             }
         }
 
@@ -201,67 +242,83 @@
             setTimeout(() => box.classList.add('hidden'), 3000);
         }
 
+        function showSoldMessage() {
+            const box = document.getElementById('messageBox');
+            box.innerHTML = `🔨 SOLD! ${properties.highest_bidder} - RM ${properties.current_price.toLocaleString()}`;
+            box.style.background = 'rgba(251, 146, 60, 0.2)';
+            box.style.borderColor = 'rgba(251, 146, 60, 0.5)';
+            box.style.color = '#fed7aa';
+            box.classList.remove('hidden');
+        }
+
         function updateUI() {
+            updateDisplay();
+            updateBidders();
             updateParticipants();
-            renderDisplay();
-            renderBidders();
         }
 
-        function updateParticipants() {
-            if (!auctionData) return;
-            const uniqueBidders = new Set(auctionData.map(r => r.bidder_name).filter(n => n && n !== '等待中...'));
-            document.getElementById('participantCount').textContent = uniqueBidders.size;
-        }
+        function updateDisplay() {
+            if (!properties) return;
 
-        function renderDisplay() {
-            if (!auctionData) return;
-            const current = properties[selectedProperty - 1];
-            const propertyData = auctionData.find(row => row.id === selectedProperty);
-            
-            if (!propertyData) return;
+            const info = propertyInfo[selectedProperty];
+            const minBid = properties.current_price + info.increment;
 
-            const currentPrice = propertyData.current_price || current.openingBid;
-            const minBid = currentPrice + current.increment;
-
-            document.getElementById('propertyImage').textContent = current.image;
-            document.getElementById('propertyAddress').textContent = current.address;
-            document.getElementById('propertyDescription').textContent = current.description;
-            document.getElementById('openingPrice').textContent = `RM ${current.openingBid.toLocaleString()}`;
-            document.getElementById('currentPrice').textContent = `RM ${currentPrice.toLocaleString()}`;
-            document.getElementById('highBidder').textContent = propertyData.bidder_name || '等待中...';
+            document.getElementById('propertyImage').textContent = info.image;
+            document.getElementById('propertyAddress').textContent = info.address;
+            document.getElementById('propertyDescription').textContent = info.description;
+            document.getElementById('openingPrice').textContent = `RM ${info.openingBid.toLocaleString()}`;
+            document.getElementById('currentPrice').textContent = `RM ${properties.current_price.toLocaleString()}`;
+            document.getElementById('highBidder').textContent = properties.highest_bidder;
             document.getElementById('minBidDisplay').textContent = `RM ${minBid.toLocaleString()}`;
+
+            // Calling 倒数
+            const callingDiv = document.getElementById('callingStatusDiv');
+            if (properties.stage > 0) {
+                callingDiv.classList.remove('hidden');
+                const callingText = document.getElementById('callingText');
+                const stages = ['', '1st Calling', '2nd Calling', '3rd Calling - Going Once...'];
+                callingText.textContent = stages[properties.stage];
+                callingText.className = properties.stage === 1 ? 'calling-text first' : 
+                                        properties.stage === 2 ? 'calling-text second' : 'calling-text third';
+                document.getElementById('callingTimer').textContent = properties.timer;
+            } else {
+                callingDiv.classList.add('hidden');
+            }
         }
 
-        function renderBidders() {
-            if (!auctionData) return;
-            
-            // 收集所有不同的竞价者和他们的出价
-            const bidderMap = {};
-            auctionData.forEach(row => {
-                if (row.bidder_name && row.bidder_name !== '等待中...') {
-                    if (!bidderMap[row.bidder_name] || row.current_price > bidderMap[row.bidder_name]) {
-                        bidderMap[row.bidder_name] = row.current_price;
-                    }
-                }
-            });
-
-            const bidders = Object.entries(bidderMap)
-                .map(([name, price]) => ({ name, price }))
-                .sort((a, b) => b.price - a.price);
-
-            const list = document.getElementById('biddersList');
-            
-            if (bidders.length === 0) {
-                list.innerHTML = '<div style="color: #93c5fd;">等待竞价者...</div>';
+        function updateBidders() {
+            if (!bidders || bidders.length === 0) {
+                document.getElementById('biddersList').innerHTML = '<div style="color: #93c5fd;">等待竞价者...</div>';
                 return;
             }
 
-            list.innerHTML = bidders.map((b, i) => `
+            // 找每个竞价者的最高出价
+            const bidderMap = {};
+            bidders.forEach(bid => {
+                if (!bidderMap[bid.bidder_name] || bid.bid_amount > bidderMap[bid.bidder_name]) {
+                    bidderMap[bid.bidder_name] = bid.bid_amount;
+                }
+            });
+
+            const sorted = Object.entries(bidderMap)
+                .map(([name, amount]) => ({ name, amount }))
+                .sort((a, b) => b.amount - a.amount);
+
+            document.getElementById('biddersList').innerHTML = sorted.map((b, i) => `
                 <div class="bidder-item">
                     <span style="color: #a5f3fc;">${i + 1}. ${b.name}</span>
-                    <span style="color: #fbbf24;">RM ${b.price.toLocaleString()}</span>
+                    <span style="color: #fbbf24;">RM ${b.amount.toLocaleString()}</span>
                 </div>
             `).join('');
+        }
+
+        function updateParticipants() {
+            if (!bidders) {
+                document.getElementById('participantCount').textContent = '0';
+                return;
+            }
+            const uniqueBidders = new Set(bidders.map(b => b.bidder_name));
+            document.getElementById('participantCount').textContent = uniqueBidders.size;
         }
 
         document.getElementById('userNameInput').addEventListener('keypress', e => {
