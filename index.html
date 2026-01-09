@@ -455,12 +455,6 @@
             color: #93c5fd;
             padding: 20px;
         }
-
-        .status-connected {
-            color: #86efac;
-            font-size: 0.8rem;
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
@@ -489,7 +483,6 @@
                     <input type="text" id="userNameInput" placeholder="输入你的名字..." />
                     <button class="btn-primary" onclick="joinAuction()">加入竞拍</button>
                 </div>
-                <div id="connectionStatus" class="status-connected">✓ 已连接</div>
             </div>
 
             <div id="welcomeText" class="user-input-section hidden">
@@ -553,15 +546,12 @@
 
             <div class="bidders-list">
                 <div class="list-title">👥 竞价者</div>
-                <div id="biddersList" class="loading">连接中...</div>
+                <div id="biddersList" class="loading">等待参与者...</div>
             </div>
         </div>
     </div>
 
     <script>
-        // 后端 API 地址 - 在部署到 Vercel 后更新这个
-        const API_URL = 'https://property-auction.vercel.app/api/auction';
-
         const properties = [
             {
                 id: 1,
@@ -601,9 +591,33 @@
         let selectedProperty = 1;
         let myUserId = '';
         let auctionData = null;
-        let pollingInterval = null;
 
-        async function joinAuction() {
+        // 初始化数据
+        function initAuctionData() {
+            let stored = localStorage.getItem('auctionData');
+            if (!stored) {
+                auctionData = {
+                    bidders: {},
+                    currentBids: {
+                        1: { price: 500000, bidder: '等待中...', timestamp: Date.now() },
+                        2: { price: 350000, bidder: '等待中...', timestamp: Date.now() },
+                        3: { price: 650000, bidder: '等待中...', timestamp: Date.now() },
+                        4: { price: 400000, bidder: '等待中...', timestamp: Date.now() }
+                    },
+                    callingStages: { 1: 0, 2: 0, 3: 0, 4: 0 },
+                    callingTimers: { 1: 0, 2: 0, 3: 0, 4: 0 }
+                };
+                localStorage.setItem('auctionData', JSON.stringify(auctionData));
+            } else {
+                auctionData = JSON.parse(stored);
+            }
+        }
+
+        function saveAuctionData() {
+            localStorage.setItem('auctionData', JSON.stringify(auctionData));
+        }
+
+        function joinAuction() {
             const input = document.getElementById('userNameInput');
             userName = input.value.trim();
             
@@ -613,47 +627,31 @@
             }
 
             myUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-
-            // 注册用户
-            try {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'registerBidder',
-                        data: { userId: myUserId, bidderName: userName }
-                    })
-                });
-            } catch (e) {
-                console.error('注册失败:', e);
-            }
+            
+            initAuctionData();
+            auctionData.bidders[myUserId] = { name: userName, lastBid: 0 };
+            saveAuctionData();
 
             document.getElementById('userInputSection').classList.add('hidden');
             document.getElementById('welcomeText').classList.remove('hidden');
             document.getElementById('displayName').textContent = userName;
             document.getElementById('mainContent').style.display = 'block';
 
-            // 开始轮询数据
-            pollData();
-            pollingInterval = setInterval(pollData, 1000);
-
-            // 每秒更新 calling 倒计时
-            startTimers();
-        }
-
-        async function pollData() {
-            try {
-                const response = await fetch(API_URL);
-                auctionData = await response.json();
+            // 定期更新显示
+            setInterval(() => {
+                initAuctionData();
                 updateParticipantCount();
                 renderDisplay();
                 renderBiddersList();
-            } catch (e) {
-                console.error('轮询失败:', e);
-            }
+            }, 500);
+
+            startTimers();
+            renderDisplay();
+            renderBiddersList();
         }
 
         function placeBid(level) {
+            initAuctionData();
             const current = properties.find(p => p.id === selectedProperty);
             const bid = auctionData.currentBids[selectedProperty];
             const minBid = bid.price + current.increment;
@@ -666,21 +664,27 @@
                 case 4: bidAmount = minBid + current.increment * 4; break;
             }
 
-            fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'placeBid',
-                    data: {
-                        propertyId: selectedProperty,
-                        bidAmount: bidAmount,
-                        bidderName: userName,
-                        userId: myUserId
-                    }
-                })
-            }).catch(e => console.error('出价失败:', e));
+            auctionData.currentBids[selectedProperty] = {
+                price: bidAmount,
+                bidder: userName,
+                timestamp: Date.now(),
+                userId: myUserId
+            };
 
+            auctionData.bidders[myUserId] = { name: userName, lastBid: bidAmount };
+
+            if (auctionData.callingStages[selectedProperty] === 0) {
+                auctionData.callingStages[selectedProperty] = 1;
+                auctionData.callingTimers[selectedProperty] = 10;
+            } else {
+                auctionData.callingStages[selectedProperty] = 1;
+                auctionData.callingTimers[selectedProperty] = 10;
+            }
+
+            saveAuctionData();
             showMessage(`✓ 成功出价 RM ${bidAmount.toLocaleString()} - ${userName}`);
+            renderDisplay();
+            renderBiddersList();
         }
 
         function showMessage(text) {
@@ -774,19 +778,6 @@
                     
                     if (auctionData.callingStages[propId] > 0 && auctionData.callingTimers[propId] > 0) {
                         auctionData.callingTimers[propId] -= 1;
-
-                        fetch(API_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                action: 'updateCalling',
-                                data: {
-                                    propertyId: propId,
-                                    stage: auctionData.callingStages[propId],
-                                    timer: auctionData.callingTimers[propId]
-                                }
-                            })
-                        }).catch(e => console.error('更新失败:', e));
                     } else if (auctionData.callingStages[propId] > 0 && auctionData.callingTimers[propId] === 0) {
                         if (auctionData.callingStages[propId] < 3) {
                             auctionData.callingStages[propId] += 1;
@@ -797,6 +788,7 @@
                     }
                 });
 
+                saveAuctionData();
                 renderDisplay();
             }, 1000);
         }
@@ -813,15 +805,11 @@
             setTimeout(() => {
                 overlay.classList.remove('active');
                 const prop = properties.find(p => p.id === propertyId);
-                
-                fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'endAuction',
-                        data: { propertyId: propertyId, openingBid: prop.openingBid }
-                    })
-                }).catch(e => console.error('结束拍卖失败:', e));
+                auctionData.currentBids[propertyId] = { price: prop.openingBid, bidder: '等待中...', timestamp: Date.now() };
+                auctionData.callingStages[propertyId] = 0;
+                auctionData.callingTimers[propertyId] = 0;
+                saveAuctionData();
+                renderDisplay();
             }, 3000);
         }
 
@@ -830,6 +818,8 @@
                 joinAuction();
             }
         });
+
+        initAuctionData();
     </script>
 </body>
 </html>
