@@ -127,7 +127,7 @@
                     user_id: myUserId, 
                     user_name: userName, 
                     status: 'active',
-                    current_bid: 0
+                    current_price: 0
                 });
 
                 if (error) {
@@ -179,13 +179,13 @@
 
             try {
                 const current = properties.find(p => p.id === selectedProperty);
-                const bids = auctionData.filter(row => row.property_id === selectedProperty && row.current_bid);
-                const currentPrice = bids.length > 0 ? Math.max(...bids.map(b => b.current_bid)) : current.openingBid;
+                const bids = auctionData.filter(row => row.property_id === selectedProperty && row.current_price);
+                const currentPrice = bids.length > 0 ? Math.max(...bids.map(b => b.current_price)) : current.openingBid;
                 const bidAmount = currentPrice + increment;
 
                 const { error } = await sb.from(TABLE_NAME).update({ 
                     property_id: selectedProperty, 
-                    current_bid: bidAmount,
+                    current_price: bidAmount,
                     user_name: userName,
                     bidder_name: userName
                 }).eq('user_id', myUserId);
@@ -225,9 +225,9 @@
         function renderDisplay() {
             if (!auctionData) return;
             const current = properties[selectedProperty - 1];
-            const bids = auctionData.filter(r => r.property_id === selectedProperty && r.current_bid).sort((a, b) => b.current_bid - a.current_bid);
+            const bids = auctionData.filter(r => r.property_id === selectedProperty && r.current_price).sort((a, b) => b.current_price - a.current_price);
             const topBid = bids[0];
-            const currentPrice = topBid?.current_bid || current.openingBid;
+            const currentPrice = topBid?.current_price || current.openingBid;
             const minBid = currentPrice + current.increment;
 
             document.getElementById('propertyImage').textContent = current.image;
@@ -243,9 +243,9 @@
             if (!auctionData) return;
             const bidders = {};
             auctionData.forEach(row => {
-                if (row.user_id && row.user_name && row.current_bid > 0) {
-                    if (!bidders[row.user_id] || row.current_bid > bidders[row.user_id].bid) {
-                        bidders[row.user_id] = { name: row.user_name, bid: row.current_bid };
+                if (row.user_id && row.user_name && row.current_price > 0) {
+                    if (!bidders[row.user_id] || row.current_price > bidders[row.user_id].bid) {
+                        bidders[row.user_id] = { name: row.user_name, bid: row.current_price };
                     }
                 }
             });
