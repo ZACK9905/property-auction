@@ -51,9 +51,78 @@
         .message { padding: 16px; background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.5); border-radius: 10px; color: #86efac; text-align: center; font-weight: 600; animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .welcome-text { color: #06b6d4; font-weight: 600; font-size: 1.1rem; }
+
+        /* SOLD 动画 */
+        .sold-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        .sold-overlay.active {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+        .hammer-animation {
+            font-size: 5rem;
+            text-align: center;
+            animation: hammerHit 0.6s ease-in-out;
+        }
+        @keyframes hammerHit {
+            0% { transform: rotate(-45deg) translateY(-30px); }
+            50% { transform: rotate(0deg) translateY(0px); }
+            100% { transform: rotate(10deg) translateY(5px); }
+        }
+        .sold-message {
+            text-align: center;
+            font-size: 3.5rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #fbbf24 0%, #f97316 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: popIn 0.8s ease-out;
+        }
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.3); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .sold-details {
+            text-align: center;
+            font-size: 1.3rem;
+            color: #a5f3fc;
+        }
+        .next-property-btn {
+            margin-top: 20px;
+            padding: 16px 40px;
+            background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            align-self: center;
+        }
+        .next-property-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.6);
+        }
     </style>
 </head>
 <body>
+    <div class="sold-overlay" id="soldOverlay">
+        <div class="hammer-animation">🔨</div>
+        <div class="sold-message" id="soldMessage">SOLD!</div>
+        <div class="sold-details" id="soldDetails">Winner: John - RM 600,000</div>
+        <button class="next-property-btn" onclick="goToNextProperty()">进入下一件房产 →</button>
+    </div>
+
     <div class="container">
         <div class="header">
             <h1>🔨 KL Property Auction Live</h1>
@@ -133,6 +202,7 @@
         let selectedProperty = 1;
         let properties = null;
         let bidders = null;
+        let soldDisplayed = false;
 
         async function joinAuction() {
             const input = document.getElementById('userNameInput');
@@ -145,7 +215,6 @@
             document.getElementById('displayName').textContent = userName;
             document.getElementById('mainContent').classList.remove('hidden');
 
-            // 实时监听
             sb.channel('properties-changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => loadData())
                 .subscribe();
@@ -154,7 +223,6 @@
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'bidders' }, () => loadData())
                 .subscribe();
 
-            // 定期更新定时器
             setInterval(updateTimers, 1000);
             setInterval(loadData, 500);
 
@@ -170,6 +238,12 @@
                 if (biddersData) bidders = biddersData;
 
                 updateUI();
+
+                // 检查是否成交
+                if (properties && properties.status === 'sold' && !soldDisplayed) {
+                    soldDisplayed = true;
+                    showSoldOverlay();
+                }
             } catch (err) {
                 console.error('加载错误:', err);
             }
@@ -181,7 +255,6 @@
             try {
                 const bidAmount = properties.current_price + increment;
 
-                // 更新 properties
                 await sb.from('properties')
                     .update({
                         current_price: bidAmount,
@@ -191,7 +264,6 @@
                     })
                     .eq('id', selectedProperty);
 
-                // 插入到 bidders 历史
                 await sb.from('bidders')
                     .insert({
                         property_id: selectedProperty,
@@ -227,7 +299,6 @@
                         await sb.from('properties')
                             .update({ stage: 0, timer: 0, status: 'sold' })
                             .eq('id', selectedProperty);
-                        showSoldMessage();
                     }
                 }
             } catch (err) {
@@ -242,13 +313,23 @@
             setTimeout(() => box.classList.add('hidden'), 3000);
         }
 
-        function showSoldMessage() {
-            const box = document.getElementById('messageBox');
-            box.innerHTML = `🔨 SOLD! ${properties.highest_bidder} - RM ${properties.current_price.toLocaleString()}`;
-            box.style.background = 'rgba(251, 146, 60, 0.2)';
-            box.style.borderColor = 'rgba(251, 146, 60, 0.5)';
-            box.style.color = '#fed7aa';
-            box.classList.remove('hidden');
+        function showSoldOverlay() {
+            if (!properties) return;
+
+            document.getElementById('soldMessage').textContent = 'SOLD! 🎉';
+            document.getElementById('soldDetails').textContent = `${properties.highest_bidder} - RM ${properties.current_price.toLocaleString()}`;
+            document.getElementById('soldOverlay').classList.add('active');
+        }
+
+        async function goToNextProperty() {
+            if (selectedProperty < 4) {
+                selectedProperty++;
+                soldDisplayed = false;
+                document.getElementById('soldOverlay').classList.remove('active');
+                await loadData();
+            } else {
+                alert('🎊 所有房产已成交！拍卖会结束！');
+            }
         }
 
         function updateUI() {
@@ -271,7 +352,6 @@
             document.getElementById('highBidder').textContent = properties.highest_bidder;
             document.getElementById('minBidDisplay').textContent = `RM ${minBid.toLocaleString()}`;
 
-            // Calling 倒数
             const callingDiv = document.getElementById('callingStatusDiv');
             if (properties.stage > 0) {
                 callingDiv.classList.remove('hidden');
@@ -292,7 +372,6 @@
                 return;
             }
 
-            // 找每个竞价者的最高出价
             const bidderMap = {};
             bidders.forEach(bid => {
                 if (!bidderMap[bid.bidder_name] || bid.bid_amount > bidderMap[bid.bidder_name]) {
