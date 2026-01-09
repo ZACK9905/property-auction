@@ -90,7 +90,7 @@
                 </div>
 
                 <button class="btn-success" onclick="resetCurrentProperty()">🔄 重置本房产</button>
-                <button onclick="markSoldOnly()">����️ 标为成交（仅标为 sold，不打开下一件）</button>
+                <button onclick="markSoldOnly()">🏷️ 标为成交（仅标为 sold，不打开下一件）</button>
             </div>
 
             <!-- 快速操作 -->
@@ -194,7 +194,8 @@
                         status: 'open',
                         release_next: false,
                         release_by: null,
-                        release_at: null
+                        release_at: null,
+                        sold_at: null
                     })
                     .eq('id', selectedProperty);
 
@@ -213,8 +214,9 @@
         // 仅把当前房产标为 sold（不打开下一件）
         async function markSoldOnly() {
             try {
+                const now = new Date().toISOString();
                 await sb.from('properties')
-                    .update({ status: 'sold', stage: 0, timer: 0, release_next: false })
+                    .update({ status: 'sold', stage: 0, timer: 0, release_next: false, sold_at: now })
                     .eq('id', selectedProperty);
                 showMessage('✓ 已将当前房产标为 sold（未打开下一件）');
                 await loadData();
@@ -273,13 +275,15 @@
                     return;
                 }
 
+                const now = new Date().toISOString();
                 // 直接标记为成交，不改变其他信息
                 await sb.from('properties')
                     .update({ 
                         status: 'sold',
                         stage: 0,
                         timer: 0,
-                        release_next: false
+                        release_next: false,
+                        sold_at: now
                     })
                     .eq('id', selectedProperty);
                 
