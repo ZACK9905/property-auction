@@ -1,0 +1,11 @@
+{
+  "name": "kl-property-auction",
+  "version": "1.0.0",
+  "description": "KL Property Auction Live - 20人实时竞拍系统",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "keywords": ["auction", "realtime", "kl"],
+  "author": "",
+  "license": "MIT"
+}
