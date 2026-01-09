@@ -271,10 +271,16 @@
         async function forceSold() {
             try {
                 await sb.from('properties')
-                    .update({ stage: 0, timer: 0, status: 'sold' })
+                    .update({ 
+                        stage: 0, 
+                        timer: 0, 
+                        status: 'sold',
+                        highest_bidder: allProperties[selectedProperty].highest_bidder  // 保持现有的最高竞价者
+                    })
                     .eq('id', selectedProperty);
                 showMessage('✓ 已强制成交');
                 await loadData();
+                // 不自动跳转到下一个房产
             } catch (err) {
                 showMessage('❌ 失败: ' + err.message, true);
             }
