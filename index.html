@@ -210,7 +210,7 @@
             const input = document.getElementById('userNameInput');
             userName = input.value.trim();
             
-            if (!userName) { alert('请输入你的名字！'); return; }
+            if (!userName) { alert('请输入你的名字���'); return; }
 
             document.getElementById('userInputSection').classList.add('hidden');
             document.getElementById('welcomeText').classList.remove('hidden');
@@ -237,7 +237,7 @@
                 
                 if (!allProps || allProps.length === 0) return;
 
-                // 优先检测“刚刚变为 sold 且还没在学生端展示过”的房产（由教师强制成交等触发）
+                // 优先检测“刚刚变为 sold 且还没在学生端展示过”的房产（由教师强制成交或倒计时）
                 const newlySold = allProps.find(p => p.status === 'sold' && !lastShownSoldIds.has(p.id));
                 let activeProp = null;
 
@@ -280,7 +280,8 @@
                 const thisPropRelease = allProps.find(p => p.id === currentProperty && p.release_next === true);
                 if (thisPropRelease && stayOnSold) {
                     // 老师已经放行该房产 — 关闭 overlay，让页面进入下一件 open（或等待老师打开）
-                    hideSoldOverlay();
+                    // 为了让学生能看清楚 SOLD 动画，再等待 800ms 再隐藏（可调）
+                    setTimeout(() => hideSoldOverlay(), 800);
                 }
 
             } catch (err) {
@@ -345,9 +346,10 @@
                             .update({ stage: nextStage, timer: nextTimer })
                             .eq('id', currentProperty);
                     } else {
-                        // 到达第三次倒计时结束，设置为 sold
+                        // 到达第三次倒计时结束，设置为 sold，并写入 sold_at
+                        const now = new Date().toISOString();
                         await sb.from('properties')
-                            .update({ stage: 0, timer: 0, status: 'sold' })
+                            .update({ stage: 0, timer: 0, status: 'sold', sold_at: now })
                             .eq('id', currentProperty);
                     }
                 }
@@ -373,7 +375,7 @@
                 lastShownSoldIds.add(currentProperty);
                 return;
             }
-            document.getElementById('soldDetails').textContent = `赢家: ${currentPropertyObj.highest_bidder} - RM ${currentPropertyObj.current_price.toLocaleString()}`;
+            document.getElementById('soldDetails').textContent = `赢家: ${currentPropertyObj.highest_bidder || '-'} - RM ${currentPropertyObj.current_price?.toLocaleString() || '-'}`;
             overlay.classList.add('active');
             soldAlreadyShown = true;
             stayOnSold = true;
@@ -381,7 +383,6 @@
         }
 
         function hideSoldOverlay() {
-            // 如果需要手动继续到下一件（例如老师点击），可以调用此函数
             const overlay = document.getElementById('soldOverlay');
             overlay.classList.remove('active');
             stayOnSold = false;
