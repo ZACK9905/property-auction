@@ -45,6 +45,7 @@
         .bid-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
         .bid-btn { padding: 16px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; color: white; background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); }
         .bid-btn:hover { box-shadow: 0 0 20px rgba(6, 182, 212, 0.5); }
+        .bid-btn[disabled] { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
         .bidders-list { background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(30, 99, 145, 0.4)); border: 1px solid rgba(34, 211, 238, 0.3); border-radius: 20px; padding: 25px; max-height: 700px; overflow-y: auto; }
         .bidder-item { padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; }
         .hidden { display: none; }
@@ -166,7 +167,7 @@
 
                     <div style="font-size: 0.9rem; color: #93c5fd; margin-bottom: 15px;">下一个出价必须至少: <strong style="color: #06b6d4; font-size: 1.1rem;" id="minBidDisplay">RM 505,000</strong></div>
 
-                    <div class="bid-buttons">
+                    <div class="bid-buttons" id="bidButtonsContainer">
                         <button class="bid-btn" onclick="placeBid(5000)">+RM 5,000</button>
                         <button class="bid-btn" onclick="placeBid(10000)">+RM 10,000</button>
                         <button class="bid-btn" onclick="placeBid(15000)">+RM 15,000</button>
@@ -202,6 +203,8 @@
         let currentPropertyObj = null;
         let bidders = null;
         let soldAlreadyShown = false;
+        let stayOnSold = false; // 当某件房产成交并展示 SOLD 覆盖层后，保持停留
+        const lastShownSoldIds = new Set(); // 记录已经在学生端展示过的 sold 房产 id
 
         async function joinAuction() {
             const input = document.getElementById('userNameInput');
@@ -234,13 +237,27 @@
                 
                 if (!allProps || allProps.length === 0) return;
 
-                // 找 open 状态的房产，找不到就显示第一个
-                let activeProp = allProps.find(p => p.status === 'open');
-                
-                if (!activeProp) {
-                    // 如果没有 open 的，就显示当前正在看的房产
-                    activeProp = allProps.find(p => p.id === currentProperty) || allProps[0];
+                // 优先检测“刚刚变为 sold 且还没在学生端展示过”的房产（由教师强制成交等触发）
+                const newlySold = allProps.find(p => p.status === 'sold' && !lastShownSoldIds.has(p.id));
+                let activeProp = null;
+
+                if (newlySold && !stayOnSold) {
+                    // 优先展示新成交的那件房产，确保学生看到锤击动画并停留
+                    activeProp = newlySold;
+                } else {
+                    // 如果已经处于 stayOnSold 并且 currentProperty 有值，则继续显示当前 property（保持停留）
+                    if (stayOnSold && currentProperty) {
+                        activeProp = allProps.find(p => p.id === currentProperty) || null;
+                    } else {
+                        // 找 open 状态的房产，找不到就显示当前正在看的房产
+                        activeProp = allProps.find(p => p.status === 'open');
+                        if (!activeProp) {
+                            activeProp = allProps.find(p => p.id === currentProperty) || allProps[0];
+                        }
+                    }
                 }
+
+                if (!activeProp) return;
 
                 currentPropertyObj = activeProp;
                 currentProperty = activeProp.id;
@@ -250,11 +267,23 @@
 
                 updateUI();
 
-                // 检查是否成交 - 只在从 open 变成 sold 时显示一次
-                if (activeProp.status === 'sold' && !soldAlreadyShown) {
-                    soldAlreadyShown = true;
+                // 如果 detect 到新成交（newlySold），立即展示 overlay
+                if (newlySold && !soldAlreadyShown) {
                     showSoldOverlay();
                 }
+                // 如果已经处于停留状态，确保覆盖层保持显示（例如刷新后）
+                if (currentPropertyObj.status === 'sold' && stayOnSold) {
+                    showSoldOverlay();
+                }
+
+                // 监听老师 release 的信号：任何 property 的 release_next === true
+                // 一旦老师 release（通常会同时把下一件设为 open），学生端会隐藏 overlay 并继续
+                const anyReleased = allProps.find(p => p.release_next === true);
+                if (anyReleased && stayOnSold) {
+                    // 老师已经放行 — 关闭 overlay，让页面进入下一件 open（或等待老师打开）
+                    hideSoldOverlay();
+                }
+
             } catch (err) {
                 console.error('加载错误:', err);
             }
@@ -262,6 +291,12 @@
 
         async function placeBid(increment) {
             if (!currentPropertyObj) return;
+
+            // 禁止在成交后出价
+            if (currentPropertyObj.status === 'sold') {
+                showMessage('❌ 本房产已成交，无法出价');
+                return;
+            }
 
             try {
                 const bidAmount = currentPropertyObj.current_price + increment;
@@ -294,6 +329,11 @@
             if (!currentPropertyObj) return;
 
             try {
+                // 如果该房产已成交并且我们要停留在 SOLD 屏幕，停止自动推进定时器逻辑
+                if (currentPropertyObj.status === 'sold' && stayOnSold) {
+                    return;
+                }
+
                 if (currentPropertyObj.stage > 0) {
                     if (currentPropertyObj.timer > 0) {
                         await sb.from('properties')
@@ -306,6 +346,7 @@
                             .update({ stage: nextStage, timer: nextTimer })
                             .eq('id', currentProperty);
                     } else {
+                        // 到达第三次倒计时结束，设置为 sold
                         await sb.from('properties')
                             .update({ stage: 0, timer: 0, status: 'sold' })
                             .eq('id', currentProperty);
@@ -324,9 +365,30 @@
         }
 
         function showSoldOverlay() {
+            const overlay = document.getElementById('soldOverlay');
+            // 如果已经处于 active 状态就不重复触发，但仍保证标志正确
             if (!currentPropertyObj) return;
+            if (overlay.classList.contains('active')) {
+                soldAlreadyShown = true;
+                stayOnSold = true;
+                lastShownSoldIds.add(currentProperty);
+                return;
+            }
             document.getElementById('soldDetails').textContent = `赢家: ${currentPropertyObj.highest_bidder} - RM ${currentPropertyObj.current_price.toLocaleString()}`;
-            document.getElementById('soldOverlay').classList.add('active');
+            overlay.classList.add('active');
+            soldAlreadyShown = true;
+            stayOnSold = true;
+            lastShownSoldIds.add(currentProperty);
+        }
+
+        function hideSoldOverlay() {
+            // 如果需要手动继续到下一件（例如老师点击），可以调用此函数
+            const overlay = document.getElementById('soldOverlay');
+            overlay.classList.remove('active');
+            stayOnSold = false;
+            soldAlreadyShown = false;
+            // 解除停留后，触发一次 loadData 以切换到 open 房产（如果存在）
+            loadData();
         }
 
         function updateUI() {
@@ -338,8 +400,8 @@
         function updateDisplay() {
             if (!currentPropertyObj) return;
 
-            const info = propertyInfo[currentProperty];
-            const minBid = currentPropertyObj.current_price + info.increment;
+            const info = propertyInfo[currentProperty] || { address: currentPropertyObj.address || '房产', image: '🏠', openingBid: currentPropertyObj.opening_bid || 0, increment: 5000, description: '' };
+            const minBid = currentPropertyObj.current_price + (info.increment || 0);
 
             document.getElementById('propertyImage').textContent = info.image;
             document.getElementById('propertyAddress').textContent = info.address;
@@ -351,16 +413,29 @@
             document.getElementById('propertyInfo').textContent = `正在竞拍房产 ${currentProperty}/4`;
 
             const callingDiv = document.getElementById('callingStatusDiv');
-            if (currentPropertyObj.stage > 0) {
-                callingDiv.classList.remove('hidden');
-                const callingText = document.getElementById('callingText');
-                const stages = ['', '1st Calling', '2nd Calling', '3rd Calling - Going Once...'];
-                callingText.textContent = stages[currentPropertyObj.stage];
-                callingText.className = currentPropertyObj.stage === 1 ? 'calling-text first' : 
-                                        currentPropertyObj.stage === 2 ? 'calling-text second' : 'calling-text third';
-                document.getElementById('callingTimer').textContent = currentPropertyObj.timer;
-            } else {
+
+            // 如果房产已经 sold，则显示 SOLD 覆盖层并禁用出价
+            if (currentPropertyObj.status === 'sold') {
                 callingDiv.classList.add('hidden');
+                // 禁用出价按钮
+                document.querySelectorAll('.bid-btn').forEach(b => b.setAttribute('disabled', 'true'));
+                // 确保覆盖层可见
+                showSoldOverlay();
+            } else {
+                // 非 sold 状态，正常显示叫价区（当 stage>0）
+                if (currentPropertyObj.stage > 0) {
+                    callingDiv.classList.remove('hidden');
+                    const callingText = document.getElementById('callingText');
+                    const stages = ['', '1st Calling', '2nd Calling', '3rd Calling - Going Once...'];
+                    callingText.textContent = stages[currentPropertyObj.stage] || stages[1];
+                    callingText.className = currentPropertyObj.stage === 1 ? 'calling-text first' : 
+                                            currentPropertyObj.stage === 2 ? 'calling-text second' : 'calling-text third';
+                    document.getElementById('callingTimer').textContent = currentPropertyObj.timer;
+                } else {
+                    callingDiv.classList.add('hidden');
+                }
+                // 启用出价按钮
+                document.querySelectorAll('.bid-btn').forEach(b => b.removeAttribute('disabled'));
             }
         }
 
@@ -400,6 +475,13 @@
 
         document.getElementById('userNameInput').addEventListener('keypress', e => {
             if (e.key === 'Enter') joinAuction();
+        });
+
+        // (可选) 全局键盘快捷键：按 N 可以手动继续到下一件（仅老师/开发调试或学生手动继续使用）
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'N' || e.key === 'n') {
+                if (stayOnSold) hideSoldOverlay();
+            }
         });
     </script>
 </body>
