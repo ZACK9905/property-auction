@@ -35,6 +35,7 @@
         .bidder-item { padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; }
         .hidden { display: none; }
         .error { color: #fca5a5; padding: 10px; margin: 10px 0; }
+        .success { color: #86efac; padding: 10px; margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -52,7 +53,7 @@
         </div>
 
         <div id="welcomeText" class="hidden">
-            <p>欢迎, <span id="displayName"></span> 👋 | 参与人数: <span id="participantCount">0</span>/20</p>
+            <p style="color: #06b6d4;">欢迎, <span id="displayName"></span> 👋 | 参与人数: <span id="participantCount">0</span></p>
         </div>
 
         <div id="mainContent" class="hidden" style="margin-top: 40px;">
@@ -91,7 +92,7 @@
                 </div>
 
                 <div class="bidders-list">
-                    <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 20px;">👥 竞价者</div>
+                    <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 20px;">👥 竞价者排行</div>
                     <div id="biddersList" style="text-align: center; color: #93c5fd; padding: 20px;">连接中...</div>
                 </div>
             </div>
@@ -112,7 +113,9 @@
             { id: 4, address: 'Subang Jaya - 公寓', image: '🏙️', openingBid: 400000, increment: 5000, description: '现代化城市公寓' },
         ];
 
-        let userName = '', selectedProperty = 1, myUserId = '', auctionData = null;
+        let userName = '';
+        let selectedProperty = 1;
+        let auctionData = null;
 
         async function joinAuction() {
             const input = document.getElementById('userNameInput');
@@ -120,44 +123,24 @@
             
             if (!userName) { alert('请输入你的名字！'); return; }
 
-            myUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            document.getElementById('userInputSection').classList.add('hidden');
+            document.getElementById('welcomeText').classList.remove('hidden');
+            document.getElementById('displayName').textContent = userName;
+            document.getElementById('mainContent').classList.remove('hidden');
 
-            try {
-                const { error } = await sb.from(TABLE_NAME).insert({ 
-                    user_id: myUserId, 
-                    user_name: userName, 
-                    status: 'active',
-                    current_price: 0
-                });
+            // 实时订阅
+            sb.channel('auction-changes')
+                .on('postgres_changes', { 
+                    event: '*', 
+                    schema: 'public', 
+                    table: TABLE_NAME 
+                }, () => {
+                    loadData();
+                })
+                .subscribe();
 
-                if (error) {
-                    document.getElementById('statusMsg').innerHTML = '<div class="error">❌ ' + error.message + '</div>';
-                    console.error('插入错误:', error);
-                    return;
-                }
-
-                document.getElementById('userInputSection').classList.add('hidden');
-                document.getElementById('welcomeText').classList.remove('hidden');
-                document.getElementById('displayName').textContent = userName;
-                document.getElementById('mainContent').classList.remove('hidden');
-
-                // 实时订阅
-                sb.channel('auction-changes')
-                    .on('postgres_changes', { 
-                        event: '*', 
-                        schema: 'public', 
-                        table: TABLE_NAME 
-                    }, () => {
-                        loadData();
-                    })
-                    .subscribe();
-
-                setInterval(loadData, 1000);
-                await loadData();
-            } catch (err) {
-                console.error('错误:', err);
-                document.getElementById('statusMsg').innerHTML = '<div class="error">❌ 连接失败</div>';
-            }
+            setInterval(loadData, 1000);
+            await loadData();
         }
 
         async function loadData() {
@@ -179,24 +162,32 @@
 
             try {
                 const current = properties.find(p => p.id === selectedProperty);
-                const bids = auctionData.filter(row => row.property_id === selectedProperty && row.current_price);
-                const currentPrice = bids.length > 0 ? Math.max(...bids.map(b => b.current_price)) : current.openingBid;
-                const bidAmount = currentPrice + increment;
-
-                const { error } = await sb.from(TABLE_NAME).update({ 
-                    property_id: selectedProperty, 
-                    current_price: bidAmount,
-                    user_name: userName,
-                    bidder_name: userName
-                }).eq('user_id', myUserId);
-
-                if (error) {
-                    console.error('出价错误:', error);
-                    showMessage('❌ 出价失败');
+                
+                // 找到该房产的当前出价
+                const propertyData = auctionData.find(row => row.id === selectedProperty);
+                if (!propertyData) {
+                    alert('房产未找到！');
                     return;
                 }
 
-                showMessage(`✓ 成功出价 RM ${bidAmount.toLocaleString()}`);
+                const currentPrice = propertyData.current_price || current.openingBid;
+                const bidAmount = currentPrice + increment;
+
+                // 更新该房产记录
+                const { error } = await sb.from(TABLE_NAME).update({ 
+                    current_price: bidAmount,
+                    bidder_name: userName,
+                    stage: 1,
+                    timer: 10
+                }).eq('id', selectedProperty);
+
+                if (error) {
+                    console.error('出价错误:', error);
+                    showMessage('❌ 出价失败: ' + error.message);
+                    return;
+                }
+
+                showMessage(`✓ ${userName} 成功出价 RM ${bidAmount.toLocaleString()}`);
                 await loadData();
             } catch (err) {
                 console.error('错误:', err);
@@ -218,16 +209,18 @@
 
         function updateParticipants() {
             if (!auctionData) return;
-            const users = new Set(auctionData.map(r => r.user_id).filter(u => u));
-            document.getElementById('participantCount').textContent = users.size;
+            const uniqueBidders = new Set(auctionData.map(r => r.bidder_name).filter(n => n && n !== '等待中...'));
+            document.getElementById('participantCount').textContent = uniqueBidders.size;
         }
 
         function renderDisplay() {
             if (!auctionData) return;
             const current = properties[selectedProperty - 1];
-            const bids = auctionData.filter(r => r.property_id === selectedProperty && r.current_price).sort((a, b) => b.current_price - a.current_price);
-            const topBid = bids[0];
-            const currentPrice = topBid?.current_price || current.openingBid;
+            const propertyData = auctionData.find(row => row.id === selectedProperty);
+            
+            if (!propertyData) return;
+
+            const currentPrice = propertyData.current_price || current.openingBid;
             const minBid = currentPrice + current.increment;
 
             document.getElementById('propertyImage').textContent = current.image;
@@ -235,33 +228,38 @@
             document.getElementById('propertyDescription').textContent = current.description;
             document.getElementById('openingPrice').textContent = `RM ${current.openingBid.toLocaleString()}`;
             document.getElementById('currentPrice').textContent = `RM ${currentPrice.toLocaleString()}`;
-            document.getElementById('highBidder').textContent = topBid?.user_name || topBid?.bidder_name || '等待中...';
+            document.getElementById('highBidder').textContent = propertyData.bidder_name || '等待中...';
             document.getElementById('minBidDisplay').textContent = `RM ${minBid.toLocaleString()}`;
         }
 
         function renderBidders() {
             if (!auctionData) return;
-            const bidders = {};
+            
+            // 收集所有不同的竞价者和他们的出价
+            const bidderMap = {};
             auctionData.forEach(row => {
-                if (row.user_id && row.user_name && row.current_price > 0) {
-                    if (!bidders[row.user_id] || row.current_price > bidders[row.user_id].bid) {
-                        bidders[row.user_id] = { name: row.user_name, bid: row.current_price };
+                if (row.bidder_name && row.bidder_name !== '等待中...') {
+                    if (!bidderMap[row.bidder_name] || row.current_price > bidderMap[row.bidder_name]) {
+                        bidderMap[row.bidder_name] = row.current_price;
                     }
                 }
             });
 
-            const sorted = Object.values(bidders).sort((a, b) => b.bid - a.bid);
+            const bidders = Object.entries(bidderMap)
+                .map(([name, price]) => ({ name, price }))
+                .sort((a, b) => b.price - a.price);
+
             const list = document.getElementById('biddersList');
             
-            if (sorted.length === 0) {
-                list.innerHTML = '<div style="color: #93c5fd;">等待参与者...</div>';
+            if (bidders.length === 0) {
+                list.innerHTML = '<div style="color: #93c5fd;">等待竞价者...</div>';
                 return;
             }
 
-            list.innerHTML = sorted.map((b, i) => `
+            list.innerHTML = bidders.map((b, i) => `
                 <div class="bidder-item">
                     <span style="color: #a5f3fc;">${i + 1}. ${b.name}</span>
-                    <span style="color: #fbbf24;">RM ${b.bid.toLocaleString()}</span>
+                    <span style="color: #fbbf24;">RM ${b.price.toLocaleString()}</span>
                 </div>
             `).join('');
         }
