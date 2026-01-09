@@ -90,7 +90,7 @@
                 </div>
 
                 <button class="btn-success" onclick="resetCurrentProperty()">🔄 重置本房产</button>
-                <button onclick="goToNextProperty()">⏭️ 进入下一件房产</button>
+                <button onclick="markSoldOnly()">����️ 标为成交（仅标为 sold，不打开下一件）</button>
             </div>
 
             <!-- 快速操作 -->
@@ -99,7 +99,7 @@
                 <button onclick="startCalling()">🔨 开始Calling (1st)</button>
                 <button onclick="secondCalling()">🔨 进入2nd Calling</button>
                 <button onclick="thirdCalling()">🔨 进入3rd Calling</button>
-                <button onclick="forceSold()">✓ 强制成交</button>
+                <button onclick="forceSold()">✓ 强制成交（仅标为 sold）</button>
                 <button class="btn-release" onclick="releaseToNext()">🚀 Release Students & Open Next</button>
             </div>
 
@@ -155,7 +155,7 @@
 
         async function loadData() {
             try {
-                const { data, error } = await sb.from('properties').select('*');
+                const { data, error } = await sb.from('properties').select('*').order('id');
                 if (error) {
                     showMessage('❌ 加载失败: ' + error.message, true);
                     return;
@@ -210,39 +210,23 @@
             }
         }
 
-        async function goToNextProperty() {
-            if (selectedProperty < 4) {
-                try {
-                    // 标记当前为 sold
-                    await sb.from('properties')
-                        .update({ status: 'sold', stage: 0, timer: 0, release_next: true, release_by: 'teacher', release_at: new Date().toISOString() })
-                        .eq('id', selectedProperty);
-
-                    const nextProp = selectedProperty + 1;
-                    
-                    await sb.from('properties')
-                        .update({ status: 'open', stage: 0, timer: 0 })
-                        .eq('id', nextProp);
-
-                    // 延迟清理 release_next（1.5s）
-                    setTimeout(async () => {
-                        try {
-                            await sb.from('properties').update({ release_next: false }).eq('id', selectedProperty);
-                        } catch (e) { console.error('release cleanup failed', e); }
-                    }, 1500);
-
-                    document.getElementById('propertySelect').value = nextProp;
-                    selectedProperty = nextProp;
-                    
-                    showMessage('✓ 已进入房产 ' + nextProp);
-                    await loadData();
-                } catch (err) {
-                    console.error('切换错误:', err);
-                    showMessage('❌ 切换失败: ' + err.message, true);
-                }
-            } else {
-                alert('🎊 所有房产已成交！拍卖会结束！');
+        // 仅把当前房产标为 sold（不打开下一件）
+        async function markSoldOnly() {
+            try {
+                await sb.from('properties')
+                    .update({ status: 'sold', stage: 0, timer: 0, release_next: false })
+                    .eq('id', selectedProperty);
+                showMessage('✓ 已将当前房产标为 sold（未打开下一件）');
+                await loadData();
+            } catch (err) {
+                console.error('标为 sold 错误:', err);
+                showMessage('❌ 失败: ' + err.message, true);
             }
+        }
+
+        async function goToNextProperty() {
+            // Keep behaviour simple: mark current sold only (use releaseToNext to open next)
+            await markSoldOnly();
         }
 
         async function startCalling() {
@@ -295,14 +279,12 @@
                         status: 'sold',
                         stage: 0,
                         timer: 0,
-                        // 保持 highest_bidder 和 current_price 不变
-                        release_next: false,
+                        release_next: false
                     })
                     .eq('id', selectedProperty);
                 
                 showMessage('✓ 已强制成交（房产不跳转）');
                 await loadData();
-                // 不自动跳转到下一个房产
             } catch (err) {
                 console.error('强制成交错误:', err);
                 showMessage('❌ 失败: ' + err.message, true);
@@ -336,7 +318,7 @@
                 // 3) 等 1.5 秒后自动清理 release_next（避免长期残留）
                 setTimeout(async () => {
                     try {
-                        await sb.from('properties').update({ release_next: false }).eq('id', selectedProperty);
+                        await sb.from('properties').update({ release_next: false, release_by: null, release_at: null }).eq('id', selectedProperty);
                     } catch (e) {
                         console.error('release cleanup failed', e);
                     }
