@@ -42,6 +42,7 @@
         .status-open { background: rgba(34, 197, 94, 0.3); color: #86efac; }
         .status-sold { background: rgba(239, 68, 68, 0.3); color: #fca5a5; }
         .message { padding: 15px; background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.5); border-radius: 8px; color: #86efac; margin-bottom: 20px; text-align: center; font-weight: 600; }
+        .error-message { background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5); color: #fca5a5; }
         .hidden { display: none; }
     </style>
 </head>
@@ -71,7 +72,7 @@
                 <div class="status-display">
                     <div class="status-row">
                         <span class="status-label">状态:</span>
-                        <span class="status-value" id="currentStatus">-</span>
+                        <span class="status-value" id="currentStatus">加载中...</span>
                     </div>
                     <div class="status-row">
                         <span class="status-label">当前出价:</span>
@@ -129,22 +130,45 @@
 
     <script>
         const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpY2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MzM3NDEsImV4cCI6MjA4MzUwOTc0MX0.fxlPFVuHlwLG56bPOeP2s6qsoQn5aEgeBrdHfkvjvyM';
+        const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzkzMzc0MSwiZXhwIjoyMDgzNTA5NzQxfQ.EWmE8zCzdIUln73QZeZVppGgLqUvPMiGyWI3yN0jI0M';
 
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
         let selectedProperty = 1;
         let allProperties = {};
 
+        const propertyNames = {
+            1: 'Pavilion KL - 豪华公寓',
+            2: 'Petaling Jaya - 现代住宅',
+            3: 'Bangsar - 豪宅',
+            4: 'Subang Jaya - 公寓'
+        };
+
+        const openingBids = {
+            1: 500000,
+            2: 350000,
+            3: 650000,
+            4: 400000
+        };
+
         async function loadData() {
             try {
-                const { data } = await sb.from('properties').select('*');
-                data.forEach(prop => {
-                    allProperties[prop.id] = prop;
-                });
-                updateDisplay();
+                const { data, error } = await sb.from('properties').select('*');
+                if (error) {
+                    showMessage('❌ 加载失败: ' + error.message, true);
+                    return;
+                }
+                
+                if (data && data.length > 0) {
+                    allProperties = {};
+                    data.forEach(prop => {
+                        allProperties[prop.id] = prop;
+                    });
+                    updateDisplay();
+                }
             } catch (err) {
                 console.error('加载错误:', err);
+                showMessage('❌ 连接失败: ' + err.message, true);
             }
         }
 
@@ -157,11 +181,11 @@
             if (!confirm('确定要重置房产 ' + selectedProperty + ' 吗？所有竞价记录将被清空！')) return;
 
             try {
-                const prop = allProperties[selectedProperty];
+                const openingBid = openingBids[selectedProperty];
                 
                 await sb.from('properties')
                     .update({
-                        current_price: prop.current_price, // 保持原价（需要从初始值修改）
+                        current_price: openingBid,
                         highest_bidder: '等待中...',
                         stage: 0,
                         timer: 0,
@@ -177,25 +201,32 @@
                 await loadData();
             } catch (err) {
                 console.error('重置错误:', err);
-                showMessage('❌ 重置失败');
+                showMessage('❌ 重置失败: ' + err.message, true);
             }
         }
 
         async function goToNextProperty() {
             if (selectedProperty < 4) {
-                const nextProp = selectedProperty + 1;
-                document.getElementById('propertySelect').value = nextProp;
-                selectedProperty = nextProp;
-                
-                // 将下一个房产设为 open，其他设为已过期
-                for (let i = 1; i < selectedProperty; i++) {
+                try {
                     await sb.from('properties')
-                        .update({ status: 'sold' })
-                        .eq('id', i);
-                }
+                        .update({ status: 'sold', stage: 0, timer: 0 })
+                        .eq('id', selectedProperty);
 
-                showMessage('✓ 已进入房产 ' + nextProp);
-                await loadData();
+                    const nextProp = selectedProperty + 1;
+                    
+                    await sb.from('properties')
+                        .update({ status: 'open', stage: 0, timer: 0 })
+                        .eq('id', nextProp);
+
+                    document.getElementById('propertySelect').value = nextProp;
+                    selectedProperty = nextProp;
+                    
+                    showMessage('✓ 已进入房产 ' + nextProp);
+                    await loadData();
+                } catch (err) {
+                    console.error('切换错误:', err);
+                    showMessage('❌ 切换失败: ' + err.message, true);
+                }
             } else {
                 alert('🎊 所有房产已成交！拍卖会结束！');
             }
@@ -209,7 +240,7 @@
                 showMessage('✓ 开始 1st Calling');
                 await loadData();
             } catch (err) {
-                showMessage('❌ 失败');
+                showMessage('❌ 失败: ' + err.message, true);
             }
         }
 
@@ -221,7 +252,7 @@
                 showMessage('✓ 进入 2nd Calling');
                 await loadData();
             } catch (err) {
-                showMessage('❌ 失败');
+                showMessage('❌ 失败: ' + err.message, true);
             }
         }
 
@@ -233,7 +264,7 @@
                 showMessage('✓ 进入 3rd Calling');
                 await loadData();
             } catch (err) {
-                showMessage('❌ 失败');
+                showMessage('❌ 失败: ' + err.message, true);
             }
         }
 
@@ -245,7 +276,7 @@
                 showMessage('✓ 已强制成交');
                 await loadData();
             } catch (err) {
-                showMessage('❌ 失败');
+                showMessage('❌ 失败: ' + err.message, true);
             }
         }
 
@@ -255,7 +286,7 @@
 
             document.getElementById('currentStatus').textContent = prop.status === 'open' ? '进行中' : '已成交';
             document.getElementById('currentBid').textContent = `RM ${prop.current_price.toLocaleString()}`;
-            document.getElementById('currentBidder').textContent = prop.highest_bidder;
+            document.getElementById('currentBidder').textContent = prop.highest_bidder || '等待中...';
             document.getElementById('currentStage').textContent = prop.stage === 0 ? '未开始' : `${prop.stage} (${prop.timer}s)`;
 
             renderAllProperties();
@@ -282,18 +313,19 @@
 
         function renderAllProperties() {
             const list = document.getElementById('propertiesList');
-            const propertyNames = {
-                1: 'Pavilion KL - 豪华公寓',
-                2: 'Petaling Jaya - 现代住宅',
-                3: 'Bangsar - 豪宅',
-                4: 'Subang Jaya - 公寓'
-            };
+            
+            if (!allProperties || Object.keys(allProperties).length === 0) {
+                list.innerHTML = '<div style="color: #fca5a5;">❌ 没有房产数据</div>';
+                return;
+            }
 
-            list.innerHTML = Object.entries(allProperties).map(([id, prop]) => `
+            list.innerHTML = Object.entries(allProperties)
+                .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+                .map(([id, prop]) => `
                 <div class="property-row">
                     <div class="property-name">房产 ${id}: ${propertyNames[id]}</div>
                     <div>RM ${prop.current_price.toLocaleString()}</div>
-                    <div>${prop.highest_bidder}</div>
+                    <div>${prop.highest_bidder || '等待中...'}</div>
                     <div class="property-status ${prop.status === 'open' ? 'status-open' : 'status-sold'}">
                         ${prop.status === 'open' ? '进行中' : '已成交'}
                     </div>
@@ -302,16 +334,26 @@
             `).join('');
         }
 
-        function showMessage(text) {
+        function showMessage(text, isError = false) {
             const box = document.getElementById('messageBox');
             box.innerHTML = text;
             box.classList.remove('hidden');
-            setTimeout(() => box.classList.add('hidden'), 3000);
+            if (isError) {
+                box.classList.add('error-message');
+            } else {
+                box.classList.remove('error-message');
+            }
+            setTimeout(() => box.classList.add('hidden'), 4000);
         }
 
-        // 初始化
-        setInterval(loadData, 1000);
+        // 初始化和自动刷新
         loadData();
+        setInterval(loadData, 1000);
+
+        // 实时监听
+        sb.channel('properties-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => loadData())
+            .subscribe();
     </script>
 </body>
 </html>
