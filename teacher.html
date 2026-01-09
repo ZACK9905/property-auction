@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>KL Property Auction - Teacher Control Panel</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -28,6 +28,7 @@
         button:hover { transform: translateY(-2px); box-shadow: 0 0 20px rgba(249, 115, 22, 0.5); }
         .btn-success { background: linear-gradient(90deg, #10b981 0%, #059669 100%); }
         .btn-success:hover { box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+        .btn-release { background: linear-gradient(90deg, #06b6d4 0%, #0891b2 100%); }
         .status-display { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(249, 115, 22, 0.3); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
         .status-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(249, 115, 22, 0.2); }
         .status-row:last-child { border-bottom: none; }
@@ -99,6 +100,7 @@
                 <button onclick="secondCalling()">🔨 进入2nd Calling</button>
                 <button onclick="thirdCalling()">🔨 进入3rd Calling</button>
                 <button onclick="forceSold()">✓ 强制成交</button>
+                <button class="btn-release" onclick="releaseToNext()">🚀 Release Students & Open Next</button>
             </div>
 
             <!-- 统计信息 -->
@@ -189,7 +191,10 @@
                         highest_bidder: '等待中...',
                         stage: 0,
                         timer: 0,
-                        status: 'open'
+                        status: 'open',
+                        release_next: false,
+                        release_by: null,
+                        release_at: null
                     })
                     .eq('id', selectedProperty);
 
@@ -208,8 +213,9 @@
         async function goToNextProperty() {
             if (selectedProperty < 4) {
                 try {
+                    // 标记当前为 sold
                     await sb.from('properties')
-                        .update({ status: 'sold', stage: 0, timer: 0 })
+                        .update({ status: 'sold', stage: 0, timer: 0, release_next: true, release_by: 'teacher', release_at: new Date().toISOString() })
                         .eq('id', selectedProperty);
 
                     const nextProp = selectedProperty + 1;
@@ -217,6 +223,13 @@
                     await sb.from('properties')
                         .update({ status: 'open', stage: 0, timer: 0 })
                         .eq('id', nextProp);
+
+                    // 延迟清理 release_next（1.5s）
+                    setTimeout(async () => {
+                        try {
+                            await sb.from('properties').update({ release_next: false }).eq('id', selectedProperty);
+                        } catch (e) { console.error('release cleanup failed', e); }
+                    }, 1500);
 
                     document.getElementById('propertySelect').value = nextProp;
                     selectedProperty = nextProp;
@@ -277,22 +290,62 @@
                 }
 
                 // 直接标记为成交，不改变其他信息
-                // 这样学生页面会检测到状态变化并显示锤子动画
                 await sb.from('properties')
                     .update({ 
                         status: 'sold',
                         stage: 0,
-                        timer: 0
+                        timer: 0,
                         // 保持 highest_bidder 和 current_price 不变
+                        release_next: false,
                     })
                     .eq('id', selectedProperty);
                 
                 showMessage('✓ 已强制成交（房产不跳转）');
-                // 重新加载显示更新
                 await loadData();
                 // 不自动跳转到下一个房产
             } catch (err) {
                 console.error('强制成交错误:', err);
+                showMessage('❌ 失败: ' + err.message, true);
+            }
+        }
+
+        // Release Students & Open Next (带 1.5s 自动清理 release_next)
+        async function releaseToNext() {
+            try {
+                const prop = allProperties[selectedProperty];
+                if (!prop) {
+                    showMessage('❌ 房产数据不存在', true);
+                    return;
+                }
+
+                const now = new Date().toISOString();
+
+                // 1) 把当前房产标记为 release_next = true（并记录）
+                await sb.from('properties')
+                    .update({ release_next: true, release_by: 'teacher', release_at: now })
+                    .eq('id', selectedProperty);
+
+                // 2) 将下一件设为 open（如果存在）
+                const nextId = selectedProperty + 1;
+                if (nextId <= 4) {
+                    await sb.from('properties')
+                        .update({ status: 'open', stage: 0, timer: 0 })
+                        .eq('id', nextId);
+                }
+
+                // 3) 等 1.5 秒后自动清理 release_next（避免长期残留）
+                setTimeout(async () => {
+                    try {
+                        await sb.from('properties').update({ release_next: false }).eq('id', selectedProperty);
+                    } catch (e) {
+                        console.error('release cleanup failed', e);
+                    }
+                }, 1500);
+
+                showMessage('✓ 已 release students 并尝试打开下一件（若存在）');
+                await loadData();
+            } catch (err) {
+                console.error('releaseToNext 错误:', err);
                 showMessage('❌ 失败: ' + err.message, true);
             }
         }
