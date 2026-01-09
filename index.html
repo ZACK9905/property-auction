@@ -276,11 +276,10 @@
                     showSoldOverlay();
                 }
 
-                // 监听老师 release 的信号：任何 property 的 release_next === true
-                // 一旦老师 release（通常会同时把下一件设为 open），学生端会隐藏 overlay 并继续
-                const anyReleased = allProps.find(p => p.release_next === true);
-                if (anyReleased && stayOnSold) {
-                    // 老师已经放行 — 关闭 overlay，让页面进入下一件 open（或等待老师打开）
+                // 监听老师 release 的信号：只有当当前这件房产被老师 release（release_next === true 且 id matches）时，才解除停留
+                const thisPropRelease = allProps.find(p => p.id === currentProperty && p.release_next === true);
+                if (thisPropRelease && stayOnSold) {
+                    // 老师已经放行该房产 — 关闭 overlay，让页面进入下一件 open（或等待老师打开）
                     hideSoldOverlay();
                 }
 
