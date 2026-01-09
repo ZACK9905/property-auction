@@ -197,9 +197,9 @@
 
         let userName = '';
         let currentProperty = 1;
+        let lastSeenStatus = null;
         let properties = null;
         let bidders = null;
-        let soldDisplayed = false;
 
         async function joinAuction() {
             const input = document.getElementById('userNameInput');
@@ -228,26 +228,28 @@
 
         async function loadData() {
             try {
-                // 总是加载 status 为 open 的房产
-                const { data: propsData } = await sb.from('properties').select('*').eq('status', 'open').limit(1);
+                // 加载所有房产，找到第一个 open 的
+                const { data: allProps } = await sb.from('properties').select('*').order('id');
                 
-                if (propsData && propsData.length > 0) {
-                    properties = propsData[0];
-                    currentProperty = properties.id;
+                if (allProps && allProps.length > 0) {
+                    const openProp = allProps.find(p => p.status === 'open');
+                    if (openProp) {
+                        properties = openProp;
+                        currentProperty = properties.id;
+                        
+                        // 检查状态是否刚从 open 变成 sold
+                        if (lastSeenStatus === 'open' && properties.status === 'sold') {
+                            showSoldOverlay();
+                        }
+                        lastSeenStatus = properties.status;
+                    }
+                    
+                    // 加载当前房产的竞标记录
                     const { data: biddersData } = await sb.from('bidders').select('*').eq('property_id', currentProperty);
-                    bidders = biddersData;
-                } else {
-                    // 如果没有 open 的房产，显示最后一个
-                    const { data: allProps } = await sb.from('properties').select('*').order('id', { ascending: false }).limit(1);
-                    if (allProps) properties = allProps[0];
+                    bidders = biddersData || [];
                 }
 
                 updateUI();
-
-                if (properties && properties.status === 'sold' && !soldDisplayed) {
-                    soldDisplayed = true;
-                    showSoldOverlay();
-                }
             } catch (err) {
                 console.error('加载错误:', err);
             }
