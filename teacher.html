@@ -270,18 +270,29 @@
 
         async function forceSold() {
             try {
+                const prop = allProperties[selectedProperty];
+                if (!prop) {
+                    showMessage('❌ 房产数据不存在', true);
+                    return;
+                }
+
+                // 直接标记为成交，不改变其他信息
+                // 这样学生页面会检测到状态变化并显示锤子动画
                 await sb.from('properties')
                     .update({ 
-                        stage: 0, 
-                        timer: 0, 
                         status: 'sold',
-                        highest_bidder: allProperties[selectedProperty].highest_bidder  // 保持现有的最高竞价者
+                        stage: 0,
+                        timer: 0
+                        // 保持 highest_bidder 和 current_price 不变
                     })
                     .eq('id', selectedProperty);
-                showMessage('✓ 已强制成交');
+                
+                showMessage('✓ 已强制成交（房产不跳转）');
+                // 重新加载显示更新
                 await loadData();
                 // 不自动跳转到下一个房产
             } catch (err) {
+                console.error('强制成交错误:', err);
                 showMessage('❌ 失败: ' + err.message, true);
             }
         }
