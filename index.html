@@ -16,11 +16,16 @@
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         .header { padding: 30px 0; margin-bottom: 40px; border-bottom: 1px solid rgba(34, 211, 238, 0.3); }
         .header h1 { font-size: 2.5rem; background: linear-gradient(90deg, #a5f3fc 0%, #60a5fa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 15px; }
-        .input-group { display: flex; gap: 10px; max-width: 400px; margin-bottom: 20px; }
+        .header-controls { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+        .input-group { display: flex; gap: 10px; max-width: 400px; }
         input { flex: 1; padding: 12px; background: rgba(30, 58, 138, 0.5); border: 1px solid rgba(34, 211, 238, 0.5); border-radius: 8px; color: white; font-size: 1rem; }
         input::placeholder { color: rgba(147, 197, 253, 0.5); }
         button { padding: 12px 24px; background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 100%); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; transition: all 0.3s; }
         button:hover { transform: translateY(-2px); box-shadow: 0 0 20px rgba(34, 211, 238, 0.5); }
+        .btn-reset { background: linear-gradient(90deg, #f97316 0%, #dc2626 100%); }
+        .btn-reset:hover { box-shadow: 0 0 20px rgba(249, 115, 22, 0.5); }
+        .btn-next { background: linear-gradient(90deg, #10b981 0%, #059669 100%); }
+        .btn-next:hover { box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
         .main-content { display: grid; grid-template-columns: 1fr 350px; gap: 30px; }
         @media (max-width: 1024px) { .main-content { grid-template-columns: 1fr; } }
         .auction-card { background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(30, 99, 145, 0.4)); border: 1px solid rgba(34, 211, 238, 0.3); border-radius: 20px; padding: 40px; backdrop-filter: blur(10px); }
@@ -51,6 +56,10 @@
         .message { padding: 16px; background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.5); border-radius: 10px; color: #86efac; text-align: center; font-weight: 600; animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .welcome-text { color: #06b6d4; font-weight: 600; font-size: 1.1rem; }
+        .property-nav { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .property-btn { padding: 10px 16px; background: rgba(59, 130, 246, 0.3); border: 1px solid rgba(59, 130, 246, 0.5); border-radius: 8px; color: #a5f3fc; cursor: pointer; transition: all 0.3s; font-weight: 600; }
+        .property-btn.active { background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 100%); border-color: #06b6d4; }
+        .property-btn:hover { transform: translateY(-2px); box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
 
         /* SOLD 动画 */
         .sold-overlay {
@@ -97,21 +106,14 @@
             font-size: 1.3rem;
             color: #a5f3fc;
         }
-        .next-property-btn {
-            margin-top: 20px;
-            padding: 16px 40px;
-            background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 100%);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-weight: 600;
-            font-size: 1.1rem;
-            cursor: pointer;
-            align-self: center;
+        .sold-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
         }
-        .next-property-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 0 30px rgba(6, 182, 212, 0.6);
+        .sold-buttons button {
+            padding: 16px 40px;
+            font-size: 1.1rem;
         }
     </style>
 </head>
@@ -120,24 +122,44 @@
         <div class="hammer-animation">🔨</div>
         <div class="sold-message" id="soldMessage">SOLD!</div>
         <div class="sold-details" id="soldDetails">Winner: John - RM 600,000</div>
-        <button class="next-property-btn" onclick="goToNextProperty()">进入下一件房产 →</button>
+        <div class="sold-buttons">
+            <button class="btn-next" onclick="goToNextProperty()">进入下一件房产 →</button>
+            <button class="btn-reset" onclick="resetCurrentProperty()">重置本房产</button>
+        </div>
     </div>
 
     <div class="container">
         <div class="header">
             <h1>🔨 KL Property Auction Live</h1>
+            
             <div id="userInputSection">
-                <div class="input-group">
-                    <input type="text" id="userNameInput" placeholder="输入你的名字..." />
-                    <button onclick="joinAuction()">加入竞拍</button>
+                <div class="header-controls">
+                    <div class="input-group">
+                        <input type="text" id="userNameInput" placeholder="输入你的名字..." />
+                        <button onclick="joinAuction()">加入竞拍</button>
+                    </div>
                 </div>
             </div>
+
             <div id="welcomeText" class="welcome-text hidden">
                 欢迎, <span id="displayName"></span> 👋 | 参与人数: <span id="participantCount">0</span>/20
+            </div>
+
+            <div id="teacherControls" class="hidden" style="margin-top: 20px;">
+                <div style="color: #93c5fd; font-size: 0.9rem; margin-bottom: 10px;">⚙️ 教师控制面板</div>
+                <div class="header-controls">
+                    <button class="btn-reset" onclick="resetCurrentPropertyTeacher()">🔄 重置本房产</button>
+                    <button class="btn-next" onclick="goToNextPropertyTeacher()">⏭️ 进入下一件房产</button>
+                </div>
             </div>
         </div>
 
         <div id="mainContent" class="hidden">
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 0.9rem; color: #93c5fd; margin-bottom: 10px;">📍 房产选择</div>
+                <div class="property-nav" id="propertyNav"></div>
+            </div>
+
             <div class="main-content">
                 <div class="auction-card">
                     <div class="property-image" id="propertyImage">🏢</div>
@@ -215,6 +237,13 @@
             document.getElementById('displayName').textContent = userName;
             document.getElementById('mainContent').classList.remove('hidden');
 
+            // 教师模式检查
+            if (userName.toLowerCase() === '教师' || userName.toLowerCase() === 'teacher') {
+                document.getElementById('teacherControls').classList.remove('hidden');
+            }
+
+            renderPropertyNav();
+
             sb.channel('properties-changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => loadData())
                 .subscribe();
@@ -229,6 +258,23 @@
             await loadData();
         }
 
+        function renderPropertyNav() {
+            const nav = document.getElementById('propertyNav');
+            nav.innerHTML = Object.keys(propertyInfo).map(id => `
+                <button class="property-btn ${selectedProperty == id ? 'active' : ''}" onclick="switchProperty(${id})">
+                    房产 ${id}
+                </button>
+            `).join('');
+        }
+
+        function switchProperty(propId) {
+            selectedProperty = propId;
+            soldDisplayed = false;
+            document.getElementById('soldOverlay').classList.remove('active');
+            renderPropertyNav();
+            loadData();
+        }
+
         async function loadData() {
             try {
                 const { data: propsData } = await sb.from('properties').select('*').eq('id', selectedProperty);
@@ -239,7 +285,6 @@
 
                 updateUI();
 
-                // 检查是否成交
                 if (properties && properties.status === 'sold' && !soldDisplayed) {
                     soldDisplayed = true;
                     showSoldOverlay();
@@ -295,7 +340,6 @@
                             .update({ stage: nextStage, timer: nextTimer })
                             .eq('id', selectedProperty);
                     } else {
-                        // 成交
                         await sb.from('properties')
                             .update({ stage: 0, timer: 0, status: 'sold' })
                             .eq('id', selectedProperty);
@@ -315,21 +359,57 @@
 
         function showSoldOverlay() {
             if (!properties) return;
-
             document.getElementById('soldMessage').textContent = 'SOLD! 🎉';
             document.getElementById('soldDetails').textContent = `${properties.highest_bidder} - RM ${properties.current_price.toLocaleString()}`;
             document.getElementById('soldOverlay').classList.add('active');
         }
 
-        async function goToNextProperty() {
-            if (selectedProperty < 4) {
-                selectedProperty++;
+        async function resetCurrentProperty() {
+            if (!confirm('确定要重置本房产吗？所有竞价记录将被清空！')) return;
+
+            try {
+                const info = propertyInfo[selectedProperty];
+                
+                // 重置 properties
+                await sb.from('properties')
+                    .update({
+                        current_price: info.openingBid,
+                        highest_bidder: '等待中...',
+                        stage: 0,
+                        timer: 0,
+                        status: 'open'
+                    })
+                    .eq('id', selectedProperty);
+
+                // 删除 bidders 记录
+                await sb.from('bidders')
+                    .delete()
+                    .eq('property_id', selectedProperty);
+
                 soldDisplayed = false;
                 document.getElementById('soldOverlay').classList.remove('active');
+                showMessage('✓ 房产已重置！新一轮竞拍可以开始了！');
                 await loadData();
+            } catch (err) {
+                console.error('重置错误:', err);
+                showMessage('❌ 重置失败');
+            }
+        }
+
+        async function resetCurrentPropertyTeacher() {
+            await resetCurrentProperty();
+        }
+
+        async function goToNextProperty() {
+            if (selectedProperty < 4) {
+                switchProperty(selectedProperty + 1);
             } else {
                 alert('🎊 所有房产已成交！拍卖会结束！');
             }
+        }
+
+        async function goToNextPropertyTeacher() {
+            await goToNextProperty();
         }
 
         function updateUI() {
