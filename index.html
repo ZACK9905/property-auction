@@ -34,6 +34,7 @@
         .bidders-list { background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(30, 99, 145, 0.4)); border: 1px solid rgba(34, 211, 238, 0.3); border-radius: 20px; padding: 25px; max-height: 700px; overflow-y: auto; }
         .bidder-item { padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; }
         .hidden { display: none; }
+        .error { color: #fca5a5; padding: 10px; margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -47,6 +48,7 @@
                 <input type="text" id="userNameInput" placeholder="输入你的名字..." />
                 <button onclick="joinAuction()">加入竞拍</button>
             </div>
+            <div id="statusMsg"></div>
         </div>
 
         <div id="welcomeText" class="hidden">
@@ -56,7 +58,7 @@
         <div id="mainContent" class="hidden" style="margin-top: 40px;">
             <div class="main-content">
                 <div class="auction-card">
-                    <div class="property-image" id="propertyImage">🏠</div>
+                    <div class="property-image" id="propertyImage">🏢</div>
                     <h2 class="property-address" id="propertyAddress">Pavilion KL</h2>
                     <p class="property-description" id="propertyDescription">豪华公寓</p>
 
@@ -79,10 +81,10 @@
                     <div style="font-size: 0.9rem; color: #93c5fd; margin-bottom: 15px;">下一个出价必须至少: <strong style="color: #06b6d4; font-size: 1.1rem;" id="minBidDisplay">RM 555,000</strong></div>
 
                     <div class="bid-buttons">
-                        <button class="bid-btn" onclick="placeBid(1)">+RM 5,000<br><span style="font-size: 0.8rem;">(RM 555,000)</span></button>
-                        <button class="bid-btn" onclick="placeBid(2)">+RM 10,000<br><span style="font-size: 0.8rem;">(RM 560,000)</span></button>
-                        <button class="bid-btn" onclick="placeBid(3)">+RM 15,000<br><span style="font-size: 0.8rem;">(RM 565,000)</span></button>
-                        <button class="bid-btn" onclick="placeBid(4)">+RM 25,000<br><span style="font-size: 0.8rem;">(RM 575,000)</span></button>
+                        <button class="bid-btn" onclick="placeBid(5000)">+RM 5,000</button>
+                        <button class="bid-btn" onclick="placeBid(10000)">+RM 10,000</button>
+                        <button class="bid-btn" onclick="placeBid(15000)">+RM 15,000</button>
+                        <button class="bid-btn" onclick="placeBid(25000)">+RM 25,000</button>
                     </div>
 
                     <div id="messageBox" class="hidden" style="padding: 16px; background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.5); border-radius: 10px; color: #86efac;"></div>
@@ -99,6 +101,7 @@
     <script>
         const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MzM3NDEsImV4cCI6MjA4MzUwOTc0MX0.fxlPFVuHlwLG56bPOeP2s6qsoQn5aEgeBrdHfkvjvyM';
+        const TABLE_NAME = 'Auction';
 
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -119,38 +122,85 @@
 
             myUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
-            await sb.from('Auction').insert({ user_id: myUserId, user_name: userName, status: 'active' });
+            try {
+                const { error } = await sb.from(TABLE_NAME).insert({ 
+                    user_id: myUserId, 
+                    user_name: userName, 
+                    status: 'active',
+                    current_bid: 0
+                });
 
-            document.getElementById('userInputSection').classList.add('hidden');
-            document.getElementById('welcomeText').classList.remove('hidden');
-            document.getElementById('displayName').textContent = userName;
-            document.getElementById('mainContent').classList.remove('hidden');
+                if (error) {
+                    document.getElementById('statusMsg').innerHTML = '<div class="error">❌ ' + error.message + '</div>';
+                    console.error('插入错误:', error);
+                    return;
+                }
 
-            sb.channel('auction').on('postgres_changes', { event: '*', schema: 'public', table: 'Auction' }, loadData).subscribe();
+                document.getElementById('userInputSection').classList.add('hidden');
+                document.getElementById('welcomeText').classList.remove('hidden');
+                document.getElementById('displayName').textContent = userName;
+                document.getElementById('mainContent').classList.remove('hidden');
 
-            setInterval(loadData, 500);
-            await loadData();
+                // 实时订阅
+                sb.channel('auction-changes')
+                    .on('postgres_changes', { 
+                        event: '*', 
+                        schema: 'public', 
+                        table: TABLE_NAME 
+                    }, () => {
+                        loadData();
+                    })
+                    .subscribe();
+
+                setInterval(loadData, 1000);
+                await loadData();
+            } catch (err) {
+                console.error('错误:', err);
+                document.getElementById('statusMsg').innerHTML = '<div class="error">❌ 连接失败</div>';
+            }
         }
 
         async function loadData() {
-            const { data } = await sb.from('Auction').select('*');
-            auctionData = data;
-            updateUI();
+            try {
+                const { data, error } = await sb.from(TABLE_NAME).select('*');
+                if (error) {
+                    console.error('读取错误:', error);
+                    return;
+                }
+                auctionData = data;
+                updateUI();
+            } catch (err) {
+                console.error('错误:', err);
+            }
         }
 
-        async function placeBid(level) {
-            await loadData();
-            const current = properties.find(p => p.id === selectedProperty);
-            
-            const bids = auctionData.filter(row => row.property_id === selectedProperty && row.current_bid);
-            const currentPrice = bids.length > 0 ? Math.max(...bids.map(b => b.current_bid)) : current.openingBid;
-            const minBid = currentPrice + current.increment;
+        async function placeBid(increment) {
+            if (!auctionData) return;
 
-            let bidAmount = minBid + (level - 1) * current.increment;
+            try {
+                const current = properties.find(p => p.id === selectedProperty);
+                const bids = auctionData.filter(row => row.property_id === selectedProperty && row.current_bid);
+                const currentPrice = bids.length > 0 ? Math.max(...bids.map(b => b.current_bid)) : current.openingBid;
+                const bidAmount = currentPrice + increment;
 
-            await sb.from('Auction').update({ property_id: selectedProperty, current_bid: bidAmount }).eq('user_id', myUserId);
-            showMessage(`✓ 成功出价 RM ${bidAmount.toLocaleString()}`);
-            await loadData();
+                const { error } = await sb.from(TABLE_NAME).update({ 
+                    property_id: selectedProperty, 
+                    current_bid: bidAmount,
+                    user_name: userName,
+                    bidder_name: userName
+                }).eq('user_id', myUserId);
+
+                if (error) {
+                    console.error('出价错误:', error);
+                    showMessage('❌ 出价失败');
+                    return;
+                }
+
+                showMessage(`✓ 成功出价 RM ${bidAmount.toLocaleString()}`);
+                await loadData();
+            } catch (err) {
+                console.error('错误:', err);
+            }
         }
 
         function showMessage(text) {
@@ -185,7 +235,7 @@
             document.getElementById('propertyDescription').textContent = current.description;
             document.getElementById('openingPrice').textContent = `RM ${current.openingBid.toLocaleString()}`;
             document.getElementById('currentPrice').textContent = `RM ${currentPrice.toLocaleString()}`;
-            document.getElementById('highBidder').textContent = topBid?.user_name || '等待中...';
+            document.getElementById('highBidder').textContent = topBid?.user_name || topBid?.bidder_name || '等待中...';
             document.getElementById('minBidDisplay').textContent = `RM ${minBid.toLocaleString()}`;
         }
 
@@ -193,8 +243,10 @@
             if (!auctionData) return;
             const bidders = {};
             auctionData.forEach(row => {
-                if (row.user_id && row.user_name && row.current_bid) {
-                    bidders[row.user_id] = { name: row.user_name, bid: row.current_bid };
+                if (row.user_id && row.user_name && row.current_bid > 0) {
+                    if (!bidders[row.user_id] || row.current_bid > bidders[row.user_id].bid) {
+                        bidders[row.user_id] = { name: row.user_name, bid: row.current_bid };
+                    }
                 }
             });
 
