@@ -323,7 +323,7 @@
         function showSoldOverlay() {
             if (!properties) return;
             document.getElementById('soldMessage').textContent = 'SOLD! 🎉';
-            document.getElementById('soldDetails').textContent = `${properties.highest_bidder} - RM ${properties.current_price.toLocaleString()}`;
+            document.getElementById('soldDetails').textContent = `赢家: ${properties.highest_bidder} - RM ${properties.current_price.toLocaleString()}`;
             document.getElementById('soldOverlay').classList.add('active');
         }
 
