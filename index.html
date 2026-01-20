@@ -229,19 +229,14 @@
                 if (!allProps || allProps.length === 0) return;
 
                 let activeProp = allProps.find(p => p.status === 'open');
-                console.log('🔍 找到 open 房产:', activeProp ? activeProp.id : '无');
                 
-                // 如果没有 open 的房产，保持当前房产（即使是 sold）
                 if (!activeProp) {
                     activeProp = allProps.find(p => p.id === currentProperty);
-                    console.log('🔍 没有 open，保持当前房产:', activeProp ? activeProp.id : '无');
                 }
                 
-                // 如果还是找不到（比如第一次加载），用第一个
                 if (!activeProp) {
                     activeProp = allProps[0];
                     currentProperty = activeProp.id;
-                    console.log('🔍 都找不到，用第一个:', activeProp.id);
                 }
 
                 currentPropertyObj = activeProp;
@@ -252,15 +247,12 @@
 
                 updateUI();
 
-                // 检查成交 - 只在从 open 变成 sold 时显示一次
-                console.log('⏱️ previousStatus:', previousStatus, '| 当前 status:', activeProp.status);
                 if (previousStatus === 'open' && activeProp.status === 'sold') {
-                    console.log('🎉 触发成交动画!');
                     showSoldOverlay();
-                } else {
-                    console.log('❌ 不符合条件:', previousStatus, '!==', 'open', '||', activeProp.status, '!==', 'sold');
+                    previousStatus = 'sold-shown';
+                } else if (activeProp) {
+                    previousStatus = activeProp.status;
                 }
-                previousStatus = activeProp.status;
             } catch (err) {
                 console.error('加载错误:', err);
             }
