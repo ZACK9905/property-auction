@@ -67,7 +67,7 @@
             gap: 40px;
         }
         .sold-overlay.active {
-            display: flex;
+            display: flex !important;
         }
         .hammer-animation {
             width: 120px;
@@ -111,22 +111,11 @@
 <body>
     <div class="sold-overlay" id="soldOverlay">
         <svg class="hammer-animation" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
-            <!-- 锤柄 -->
             <rect x="85" y="80" width="30" height="120" fill="#8B4513" rx="5"/>
-            
-            <!-- 锤头底部 -->
             <ellipse cx="100" cy="75" rx="40" ry="12" fill="#D4AF37"/>
-            
-            <!-- 锤头上部 -->
             <path d="M 60 50 Q 60 30 100 25 Q 140 30 140 50 L 140 75 Q 140 85 100 88 Q 60 85 60 75 Z" fill="#8B4513"/>
-            
-            <!-- 锤头金色环 -->
             <ellipse cx="100" cy="50" rx="38" ry="15" fill="#D4AF37" opacity="0.8"/>
-            
-            <!-- 锤头高光 -->
             <ellipse cx="100" cy="45" rx="35" ry="10" fill="#FFD700" opacity="0.6"/>
-            
-            <!-- 锤底座 -->
             <ellipse cx="100" cy="210" rx="45" ry="15" fill="#654321"/>
             <ellipse cx="100" cy="205" rx="42" ry="12" fill="#8B4513"/>
         </svg>
@@ -138,30 +127,24 @@
     <div class="container">
         <div class="header">
             <h1>🔨 KL Property Auction Live</h1>
-            
             <div id="userInputSection">
                 <div class="input-group">
                     <input type="text" id="userNameInput" placeholder="输入你的名字..." />
                     <button onclick="joinAuction()">加入竞拍</button>
                 </div>
             </div>
-
             <div id="welcomeText" class="welcome-text hidden">
                 欢迎, <span id="displayName"></span> 👋 | 参与人数: <span id="participantCount">0</span>/20
             </div>
         </div>
 
         <div id="mainContent" class="hidden">
-            <div class="property-info" id="propertyInfo">
-                正在竞拍房产 1/4
-            </div>
-
+            <div class="property-info" id="propertyInfo">正在竞拍房产 1/4</div>
             <div class="main-content">
                 <div class="auction-card">
                     <div class="property-image" id="propertyImage">🏢</div>
                     <h2 class="property-address" id="propertyAddress">Pavilion KL</h2>
                     <p class="property-description" id="propertyDescription">豪华公寓</p>
-
                     <div class="price-grid">
                         <div class="price-box">
                             <div class="price-label">起价</div>
@@ -172,29 +155,23 @@
                             <div class="price-amount" id="currentPrice">RM 500,000</div>
                         </div>
                     </div>
-
                     <div class="bidder-info">
                         <div class="price-label">最高竞价者</div>
                         <div class="bidder-name" id="highBidder">等待中...</div>
                     </div>
-
                     <div id="callingStatusDiv" class="calling-status hidden">
                         <div class="calling-text" id="callingText">1st Calling</div>
                         <div class="calling-timer" id="callingTimer">10</div>
                     </div>
-
                     <div style="font-size: 0.9rem; color: #93c5fd; margin-bottom: 15px;">下一个出价必须至少: <strong style="color: #06b6d4; font-size: 1.1rem;" id="minBidDisplay">RM 505,000</strong></div>
-
                     <div class="bid-buttons">
                         <button class="bid-btn" onclick="placeBid(5000)">+RM 5,000</button>
                         <button class="bid-btn" onclick="placeBid(10000)">+RM 10,000</button>
                         <button class="bid-btn" onclick="placeBid(15000)">+RM 15,000</button>
                         <button class="bid-btn" onclick="placeBid(25000)">+RM 25,000</button>
                     </div>
-
                     <div id="messageBox" class="hidden"></div>
                 </div>
-
                 <div class="bidders-list">
                     <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 20px;">👥 竞价者排行</div>
                     <div id="biddersList" style="text-align: center; color: #93c5fd; padding: 20px;">连接中...</div>
@@ -221,12 +198,10 @@
         let currentPropertyObj = null;
         let bidders = null;
         let soldAlreadyShown = false;
-        let lastSeenStage = 0;
 
         async function joinAuction() {
             const input = document.getElementById('userNameInput');
             userName = input.value.trim();
-            
             if (!userName) { alert('请输入你的名字！'); return; }
 
             document.getElementById('userInputSection').classList.add('hidden');
@@ -244,21 +219,16 @@
 
             setInterval(updateTimers, 1000);
             setInterval(loadData, 500);
-
             await loadData();
         }
 
         async function loadData() {
             try {
                 const { data: allProps } = await sb.from('properties').select('*').order('id');
-                
                 if (!allProps || allProps.length === 0) return;
 
-                // 找 open 状态的房产，找不到就显示第一个
                 let activeProp = allProps.find(p => p.status === 'open');
-                
                 if (!activeProp) {
-                    // 如果没有 open 的，就显示当前正在看的房产
                     activeProp = allProps.find(p => p.id === currentProperty) || allProps[0];
                 }
 
@@ -270,13 +240,11 @@
 
                 updateUI();
 
-                // 检查是否成交 - 当 status 变成 sold 时显示一次
+                // 检查成交 - 只在状态为 sold 且未显示过时显示
                 if (activeProp.status === 'sold' && !soldAlreadyShown) {
                     soldAlreadyShown = true;
                     showSoldOverlay();
                 }
-                
-                lastSeenStage = activeProp.stage;
             } catch (err) {
                 console.error('加载错误:', err);
             }
@@ -284,26 +252,13 @@
 
         async function placeBid(increment) {
             if (!currentPropertyObj) return;
-
             try {
                 const bidAmount = currentPropertyObj.current_price + increment;
-
                 await sb.from('properties')
-                    .update({
-                        current_price: bidAmount,
-                        highest_bidder: userName,
-                        stage: 1,
-                        timer: 10
-                    })
+                    .update({ current_price: bidAmount, highest_bidder: userName, stage: 1, timer: 10 })
                     .eq('id', currentProperty);
-
                 await sb.from('bidders')
-                    .insert({
-                        property_id: currentProperty,
-                        bidder_name: userName,
-                        bid_amount: bidAmount
-                    });
-
+                    .insert({ property_id: currentProperty, bidder_name: userName, bid_amount: bidAmount });
                 showMessage(`✓ ${userName} 成功出价 RM ${bidAmount.toLocaleString()}`);
                 await loadData();
             } catch (err) {
@@ -314,23 +269,16 @@
 
         async function updateTimers() {
             if (!currentPropertyObj) return;
-
             try {
                 if (currentPropertyObj.stage > 0) {
                     if (currentPropertyObj.timer > 0) {
-                        await sb.from('properties')
-                            .update({ timer: currentPropertyObj.timer - 1 })
-                            .eq('id', currentProperty);
+                        await sb.from('properties').update({ timer: currentPropertyObj.timer - 1 }).eq('id', currentProperty);
                     } else if (currentPropertyObj.stage < 3) {
                         const nextStage = currentPropertyObj.stage + 1;
                         const nextTimer = nextStage === 3 ? 5 : 10;
-                        await sb.from('properties')
-                            .update({ stage: nextStage, timer: nextTimer })
-                            .eq('id', currentProperty);
+                        await sb.from('properties').update({ stage: nextStage, timer: nextTimer }).eq('id', currentProperty);
                     } else {
-                        await sb.from('properties')
-                            .update({ stage: 0, timer: 0, status: 'sold' })
-                            .eq('id', currentProperty);
+                        await sb.from('properties').update({ stage: 0, timer: 0, status: 'sold' }).eq('id', currentProperty);
                     }
                 }
             } catch (err) {
@@ -347,10 +295,8 @@
 
         function showSoldOverlay() {
             if (!currentPropertyObj) return;
-            // 显示成交信息，包括赢家和出价
             document.getElementById('soldDetails').textContent = `赢家: ${currentPropertyObj.highest_bidder} - RM ${currentPropertyObj.current_price.toLocaleString()}`;
             document.getElementById('soldOverlay').classList.add('active');
-            // 不自动隐藏，停留在画面上
         }
 
         function updateUI() {
@@ -361,7 +307,6 @@
 
         function updateDisplay() {
             if (!currentPropertyObj) return;
-
             const info = propertyInfo[currentProperty];
             const minBid = currentPropertyObj.current_price + info.increment;
 
@@ -380,8 +325,7 @@
                 const callingText = document.getElementById('callingText');
                 const stages = ['', '1st Calling', '2nd Calling', '3rd Calling - Going Once...'];
                 callingText.textContent = stages[currentPropertyObj.stage];
-                callingText.className = currentPropertyObj.stage === 1 ? 'calling-text first' : 
-                                        currentPropertyObj.stage === 2 ? 'calling-text second' : 'calling-text third';
+                callingText.className = currentPropertyObj.stage === 1 ? 'calling-text first' : currentPropertyObj.stage === 2 ? 'calling-text second' : 'calling-text third';
                 document.getElementById('callingTimer').textContent = currentPropertyObj.timer;
             } else {
                 callingDiv.classList.add('hidden');
@@ -393,18 +337,13 @@
                 document.getElementById('biddersList').innerHTML = '<div style="color: #93c5fd;">等待竞价者...</div>';
                 return;
             }
-
             const bidderMap = {};
             bidders.forEach(bid => {
                 if (!bidderMap[bid.bidder_name] || bid.bid_amount > bidderMap[bid.bidder_name]) {
                     bidderMap[bid.bidder_name] = bid.bid_amount;
                 }
             });
-
-            const sorted = Object.entries(bidderMap)
-                .map(([name, amount]) => ({ name, amount }))
-                .sort((a, b) => b.amount - a.amount);
-
+            const sorted = Object.entries(bidderMap).map(([name, amount]) => ({ name, amount })).sort((a, b) => b.amount - a.amount);
             document.getElementById('biddersList').innerHTML = sorted.map((b, i) => `
                 <div class="bidder-item">
                     <span style="color: #a5f3fc;">${i + 1}. ${b.name}</span>
