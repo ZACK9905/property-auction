@@ -198,6 +198,7 @@
         let currentPropertyObj = null;
         let bidders = null;
         let soldAlreadyShown = false;
+        let previousStatus = null;
 
         async function joinAuction() {
             const input = document.getElementById('userNameInput');
@@ -240,11 +241,11 @@
 
                 updateUI();
 
-                // 检查成交 - 只在状态为 sold 且未显示过时显示
-                if (activeProp.status === 'sold' && !soldAlreadyShown) {
-                    soldAlreadyShown = true;
+                // 检查成交 - 只在从 open 变成 sold 时显示一次
+                if (previousStatus === 'open' && activeProp.status === 'sold') {
                     showSoldOverlay();
                 }
+                previousStatus = activeProp.status;
             } catch (err) {
                 console.error('加载错误:', err);
             }
