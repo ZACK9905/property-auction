@@ -57,31 +57,31 @@
         .sold-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             backdrop-filter: blur(5px);
-        }
-        .sold-overlay.active {
-            display: flex;
             flex-direction: column;
             gap: 40px;
         }
+        .sold-overlay.active {
+            display: flex !important;
+        }
         .hammer-animation {
-            font-size: 5rem;
-            text-align: center;
-            animation: hammerHit 0.6s ease-in-out;
+            width: 120px;
+            height: 120px;
+            animation: hammerHit 0.8s ease-in-out forwards;
         }
         @keyframes hammerHit {
-            0% { transform: rotate(-45deg) translateY(-30px); }
+            0% { transform: rotate(-45deg) translateY(-40px); }
             50% { transform: rotate(0deg) translateY(0px); }
-            100% { transform: rotate(10deg) translateY(5px); }
+            100% { transform: rotate(15deg) translateY(15px); }
         }
         .sold-message {
             text-align: center;
-            font-size: 3.5rem;
+            font-size: 4rem;
             font-weight: bold;
             background: linear-gradient(90deg, #fbbf24 0%, #f97316 100%);
             -webkit-background-clip: text;
@@ -95,52 +95,56 @@
         }
         .sold-details {
             text-align: center;
-            font-size: 1.3rem;
+            font-size: 1.5rem;
             color: #a5f3fc;
+            animation: slideIn 0.6s ease-out;
         }
         .waiting-message {
             text-align: center;
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             color: #fbbf24;
             margin-top: 20px;
+            animation: slideIn 0.8s ease-out;
         }
     </style>
 </head>
 <body>
     <div class="sold-overlay" id="soldOverlay">
-        <div class="hammer-animation">🔨</div>
-        <div class="sold-message" id="soldMessage">SOLD!</div>
-        <div class="sold-details" id="soldDetails">Winner: John - RM 600,000</div>
+        <svg class="hammer-animation" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+            <rect x="85" y="80" width="30" height="120" fill="#8B4513" rx="5"/>
+            <ellipse cx="100" cy="75" rx="40" ry="12" fill="#D4AF37"/>
+            <path d="M 60 50 Q 60 30 100 25 Q 140 30 140 50 L 140 75 Q 140 85 100 88 Q 60 85 60 75 Z" fill="#8B4513"/>
+            <ellipse cx="100" cy="50" rx="38" ry="15" fill="#D4AF37" opacity="0.8"/>
+            <ellipse cx="100" cy="45" rx="35" ry="10" fill="#FFD700" opacity="0.6"/>
+            <ellipse cx="100" cy="210" rx="45" ry="15" fill="#654321"/>
+            <ellipse cx="100" cy="205" rx="42" ry="12" fill="#8B4513"/>
+        </svg>
+        <div class="sold-message">SOLD!</div>
+        <div class="sold-details" id="soldDetails">赢家: John - RM 600,000</div>
         <div class="waiting-message">⏳ 等待老师进入下一件房产...</div>
     </div>
 
     <div class="container">
         <div class="header">
             <h1>🔨 KL Property Auction Live</h1>
-            
             <div id="userInputSection">
                 <div class="input-group">
                     <input type="text" id="userNameInput" placeholder="输入你的名字..." />
                     <button onclick="joinAuction()">加入竞拍</button>
                 </div>
             </div>
-
             <div id="welcomeText" class="welcome-text hidden">
                 欢迎, <span id="displayName"></span> 👋 | 参与人数: <span id="participantCount">0</span>/20
             </div>
         </div>
 
         <div id="mainContent" class="hidden">
-            <div class="property-info" id="propertyInfo">
-                正在竞拍房产 1/4
-            </div>
-
+            <div class="property-info" id="propertyInfo">正在竞拍房产 1/4</div>
             <div class="main-content">
                 <div class="auction-card">
                     <div class="property-image" id="propertyImage">🏢</div>
                     <h2 class="property-address" id="propertyAddress">Pavilion KL</h2>
                     <p class="property-description" id="propertyDescription">豪华公寓</p>
-
                     <div class="price-grid">
                         <div class="price-box">
                             <div class="price-label">起价</div>
@@ -151,29 +155,23 @@
                             <div class="price-amount" id="currentPrice">RM 500,000</div>
                         </div>
                     </div>
-
                     <div class="bidder-info">
                         <div class="price-label">最高竞价者</div>
                         <div class="bidder-name" id="highBidder">等待中...</div>
                     </div>
-
                     <div id="callingStatusDiv" class="calling-status hidden">
                         <div class="calling-text" id="callingText">1st Calling</div>
                         <div class="calling-timer" id="callingTimer">10</div>
                     </div>
-
                     <div style="font-size: 0.9rem; color: #93c5fd; margin-bottom: 15px;">下一个出价必须至少: <strong style="color: #06b6d4; font-size: 1.1rem;" id="minBidDisplay">RM 505,000</strong></div>
-
                     <div class="bid-buttons">
                         <button class="bid-btn" onclick="placeBid(5000)">+RM 5,000</button>
                         <button class="bid-btn" onclick="placeBid(10000)">+RM 10,000</button>
                         <button class="bid-btn" onclick="placeBid(15000)">+RM 15,000</button>
                         <button class="bid-btn" onclick="placeBid(25000)">+RM 25,000</button>
                     </div>
-
                     <div id="messageBox" class="hidden"></div>
                 </div>
-
                 <div class="bidders-list">
                     <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 20px;">👥 竞价者排行</div>
                     <div id="biddersList" style="text-align: center; color: #93c5fd; padding: 20px;">连接中...</div>
@@ -184,9 +182,9 @@
 
     <script>
         const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
-        const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzkzMzc0MSwiZXhwIjoyMDgzNTA5NzQxfQ.EWmE8zCzdIUln73QZeZVppGgLqUvPMiGyWI3yN0jI0M';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MzM3NDEsImV4cCI6MjA4MzUwOTc0MX0.fxlPFVuHlwLG56bPOeP2s6qsoQn5aEgeBrdHfkvjvyM';
 
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const propertyInfo = {
             1: { address: 'Pavilion KL - 豪华公寓', image: '🏢', openingBid: 500000, increment: 5000, description: '吉隆坡中心高端住宅' },
@@ -197,14 +195,14 @@
 
         let userName = '';
         let currentProperty = 1;
-        let lastSeenStatus = null;
-        let properties = null;
+        let currentPropertyObj = null;
         let bidders = null;
+        let soldAlreadyShown = false;
+        let previousStatus = null;
 
         async function joinAuction() {
             const input = document.getElementById('userNameInput');
             userName = input.value.trim();
-            
             if (!userName) { alert('请输入你的名字！'); return; }
 
             document.getElementById('userInputSection').classList.add('hidden');
@@ -222,63 +220,61 @@
 
             setInterval(updateTimers, 1000);
             setInterval(loadData, 500);
-
             await loadData();
         }
 
         async function loadData() {
             try {
-                const { data: allProps, error } = await sb.from('properties').select('*').order('id');
+                const { data: allProps } = await sb.from('properties').select('*').order('id');
+                if (!allProps || allProps.length === 0) return;
+
+                let activeProp = allProps.find(p => p.status === 'open');
+                console.log('🔍 找到 open 房产:', activeProp ? activeProp.id : '无');
                 
-                if (error) {
-                    console.error('加载错误:', error);
-                    return;
+                // 如果没有 open 的房产，保持当前房产（即使是 sold）
+                if (!activeProp) {
+                    activeProp = allProps.find(p => p.id === currentProperty);
+                    console.log('🔍 没有 open，保持当前房产:', activeProp ? activeProp.id : '无');
                 }
                 
-                if (allProps && allProps.length > 0) {
-                    const openProp = allProps.find(p => p.status === 'open');
-                    if (openProp) {
-                        properties = openProp;
-                        currentProperty = properties.id;
-                        
-                        if (lastSeenStatus === 'open' && properties.status === 'sold') {
-                            showSoldOverlay();
-                        }
-                        lastSeenStatus = properties.status;
-                    }
-                    
-                    const { data: biddersData } = await sb.from('bidders').select('*').eq('property_id', currentProperty);
-                    bidders = biddersData || [];
+                // 如果还是找不到（比如第一次加载），用第一个
+                if (!activeProp) {
+                    activeProp = allProps[0];
+                    currentProperty = activeProp.id;
+                    console.log('🔍 都找不到，用第一个:', activeProp.id);
                 }
 
+                currentPropertyObj = activeProp;
+                currentProperty = activeProp.id;
+
+                const { data: biddersData } = await sb.from('bidders').select('*').eq('property_id', currentProperty);
+                bidders = biddersData || [];
+
                 updateUI();
+
+                // 检查成交 - 只在从 open 变成 sold 时显示一次
+                console.log('⏱️ previousStatus:', previousStatus, '| 当前 status:', activeProp.status);
+                if (previousStatus === 'open' && activeProp.status === 'sold') {
+                    console.log('🎉 触发成交动画!');
+                    showSoldOverlay();
+                } else {
+                    console.log('❌ 不符合条件:', previousStatus, '!==', 'open', '||', activeProp.status, '!==', 'sold');
+                }
+                previousStatus = activeProp.status;
             } catch (err) {
                 console.error('加载错误:', err);
             }
         }
 
         async function placeBid(increment) {
-            if (!properties) return;
-
+            if (!currentPropertyObj) return;
             try {
-                const bidAmount = properties.current_price + increment;
-
+                const bidAmount = currentPropertyObj.current_price + increment;
                 await sb.from('properties')
-                    .update({
-                        current_price: bidAmount,
-                        highest_bidder: userName,
-                        stage: 1,
-                        timer: 10
-                    })
+                    .update({ current_price: bidAmount, highest_bidder: userName, stage: 1, timer: 10 })
                     .eq('id', currentProperty);
-
                 await sb.from('bidders')
-                    .insert({
-                        property_id: currentProperty,
-                        bidder_name: userName,
-                        bid_amount: bidAmount
-                    });
-
+                    .insert({ property_id: currentProperty, bidder_name: userName, bid_amount: bidAmount });
                 showMessage(`✓ ${userName} 成功出价 RM ${bidAmount.toLocaleString()}`);
                 await loadData();
             } catch (err) {
@@ -288,24 +284,17 @@
         }
 
         async function updateTimers() {
-            if (!properties) return;
-
+            if (!currentPropertyObj) return;
             try {
-                if (properties.stage > 0) {
-                    if (properties.timer > 0) {
-                        await sb.from('properties')
-                            .update({ timer: properties.timer - 1 })
-                            .eq('id', currentProperty);
-                    } else if (properties.stage < 3) {
-                        const nextStage = properties.stage + 1;
+                if (currentPropertyObj.stage > 0) {
+                    if (currentPropertyObj.timer > 0) {
+                        await sb.from('properties').update({ timer: currentPropertyObj.timer - 1 }).eq('id', currentProperty);
+                    } else if (currentPropertyObj.stage < 3) {
+                        const nextStage = currentPropertyObj.stage + 1;
                         const nextTimer = nextStage === 3 ? 5 : 10;
-                        await sb.from('properties')
-                            .update({ stage: nextStage, timer: nextTimer })
-                            .eq('id', currentProperty);
+                        await sb.from('properties').update({ stage: nextStage, timer: nextTimer }).eq('id', currentProperty);
                     } else {
-                        await sb.from('properties')
-                            .update({ stage: 0, timer: 0, status: 'sold' })
-                            .eq('id', currentProperty);
+                        await sb.from('properties').update({ stage: 0, timer: 0, status: 'sold' }).eq('id', currentProperty);
                     }
                 }
             } catch (err) {
@@ -321,9 +310,8 @@
         }
 
         function showSoldOverlay() {
-            if (!properties) return;
-            document.getElementById('soldMessage').textContent = 'SOLD! 🎉';
-            document.getElementById('soldDetails').textContent = `赢家: ${properties.highest_bidder} - RM ${properties.current_price.toLocaleString()}`;
+            if (!currentPropertyObj) return;
+            document.getElementById('soldDetails').textContent = `赢家: ${currentPropertyObj.highest_bidder} - RM ${currentPropertyObj.current_price.toLocaleString()}`;
             document.getElementById('soldOverlay').classList.add('active');
         }
 
@@ -334,29 +322,27 @@
         }
 
         function updateDisplay() {
-            if (!properties) return;
-
+            if (!currentPropertyObj) return;
             const info = propertyInfo[currentProperty];
-            const minBid = properties.current_price + info.increment;
+            const minBid = currentPropertyObj.current_price + info.increment;
 
             document.getElementById('propertyImage').textContent = info.image;
             document.getElementById('propertyAddress').textContent = info.address;
             document.getElementById('propertyDescription').textContent = info.description;
             document.getElementById('openingPrice').textContent = `RM ${info.openingBid.toLocaleString()}`;
-            document.getElementById('currentPrice').textContent = `RM ${properties.current_price.toLocaleString()}`;
-            document.getElementById('highBidder').textContent = properties.highest_bidder;
+            document.getElementById('currentPrice').textContent = `RM ${currentPropertyObj.current_price.toLocaleString()}`;
+            document.getElementById('highBidder').textContent = currentPropertyObj.highest_bidder || '等待中...';
             document.getElementById('minBidDisplay').textContent = `RM ${minBid.toLocaleString()}`;
             document.getElementById('propertyInfo').textContent = `正在竞拍房产 ${currentProperty}/4`;
 
             const callingDiv = document.getElementById('callingStatusDiv');
-            if (properties.stage > 0) {
+            if (currentPropertyObj.stage > 0) {
                 callingDiv.classList.remove('hidden');
                 const callingText = document.getElementById('callingText');
                 const stages = ['', '1st Calling', '2nd Calling', '3rd Calling - Going Once...'];
-                callingText.textContent = stages[properties.stage];
-                callingText.className = properties.stage === 1 ? 'calling-text first' : 
-                                        properties.stage === 2 ? 'calling-text second' : 'calling-text third';
-                document.getElementById('callingTimer').textContent = properties.timer;
+                callingText.textContent = stages[currentPropertyObj.stage];
+                callingText.className = currentPropertyObj.stage === 1 ? 'calling-text first' : currentPropertyObj.stage === 2 ? 'calling-text second' : 'calling-text third';
+                document.getElementById('callingTimer').textContent = currentPropertyObj.timer;
             } else {
                 callingDiv.classList.add('hidden');
             }
@@ -367,18 +353,13 @@
                 document.getElementById('biddersList').innerHTML = '<div style="color: #93c5fd;">等待竞价者...</div>';
                 return;
             }
-
             const bidderMap = {};
             bidders.forEach(bid => {
                 if (!bidderMap[bid.bidder_name] || bid.bid_amount > bidderMap[bid.bidder_name]) {
                     bidderMap[bid.bidder_name] = bid.bid_amount;
                 }
             });
-
-            const sorted = Object.entries(bidderMap)
-                .map(([name, amount]) => ({ name, amount }))
-                .sort((a, b) => b.amount - a.amount);
-
+            const sorted = Object.entries(bidderMap).map(([name, amount]) => ({ name, amount })).sort((a, b) => b.amount - a.amount);
             document.getElementById('biddersList').innerHTML = sorted.map((b, i) => `
                 <div class="bidder-item">
                     <span style="color: #a5f3fc;">${i + 1}. ${b.name}</span>
