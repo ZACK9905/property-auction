@@ -221,6 +221,7 @@
         let currentPropertyObj = null;
         let bidders = null;
         let soldAlreadyShown = false;
+        let lastSeenStage = 0;
 
         async function joinAuction() {
             const input = document.getElementById('userNameInput');
@@ -269,11 +270,13 @@
 
                 updateUI();
 
-                // 检查是否成交 - 只在从 open 变成 sold 时显示一次
+                // 检查是否成交 - 当 status 变成 sold 时显示一次
                 if (activeProp.status === 'sold' && !soldAlreadyShown) {
                     soldAlreadyShown = true;
                     showSoldOverlay();
                 }
+                
+                lastSeenStage = activeProp.stage;
             } catch (err) {
                 console.error('加载错误:', err);
             }
@@ -344,8 +347,10 @@
 
         function showSoldOverlay() {
             if (!currentPropertyObj) return;
+            // 显示成交信息，包括赢家和出价
             document.getElementById('soldDetails').textContent = `赢家: ${currentPropertyObj.highest_bidder} - RM ${currentPropertyObj.current_price.toLocaleString()}`;
             document.getElementById('soldOverlay').classList.add('active');
+            // 不自动隐藏，停留在画面上
         }
 
         function updateUI() {
