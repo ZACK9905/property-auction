@@ -6,275 +6,39 @@
     <title>KL Property Auction Live - Student</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%);
-            color: white;
-            min-height: 100vh;
-        }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        .header { 
-            padding: 30px 0; 
-            margin-bottom: 40px; 
-            border-bottom: 2px solid rgba(34, 211, 238, 0.3);
-            animation: slideDown 0.6s ease-out;
-        }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .header h1 { 
-            font-size: 2.2rem; 
-            background: linear-gradient(90deg, #a5f3fc 0%, #60a5fa 100%); 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-            margin-bottom: 10px;
-            animation: shimmer 3s ease-in-out infinite;
-        }
-        @keyframes shimmer { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.2); } }
-        
-        .input-group { display: flex; gap: 10px; max-width: 400px; }
-        input { 
-            flex: 1; 
-            padding: 12px; 
-            background: rgba(30, 58, 138, 0.5); 
-            border: 1px solid rgba(34, 211, 238, 0.5); 
-            border-radius: 8px; 
-            color: white; 
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-        input:focus { 
-            outline: none; 
-            border-color: #22d3ee; 
-            box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
-            background: rgba(30, 58, 138, 0.7);
-        }
-        
-        button { 
-            padding: 10px 16px; 
-            background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 100%); 
-            border: none; 
-            border-radius: 8px; 
-            color: white; 
-            font-weight: 600; 
-            cursor: pointer; 
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        button::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-        button:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-        button:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 0 20px rgba(34,211,238,0.4); 
-        }
-        button:active { transform: translateY(0); }
-        
-        .main-content { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
-        
-        .auction-card { 
-            background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(30, 99, 145, 0.4)); 
-            border: 1px solid rgba(34, 211, 238, 0.3); 
-            border-radius: 20px; 
-            padding: 30px;
-            animation: fadeIn 0.5s ease-out;
-            transition: transform 0.3s ease;
-        }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        
-        .property-image { 
-            font-size: 4rem; 
-            text-align: center; 
-            padding: 30px 0;
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float { 
-            0%, 100% { transform: translateY(0px); } 
-            50% { transform: translateY(-10px); } 
-        }
-        
-        .property-address { 
-            font-size: 1.6rem; 
-            font-weight: bold; 
-            margin: 12px 0 8px 0;
-            background: linear-gradient(90deg, #a5f3fc 0%, #fbbf24 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .property-description { color: #93c5fd; font-size: 1rem; margin-bottom: 18px; }
-        
-        .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
-        .price-box { 
-            background: rgba(15, 23, 42, 0.6); 
-            border: 1px solid rgba(59, 130, 246, 0.3); 
-            border-radius: 10px; 
-            padding: 12px;
-            transition: all 0.3s ease;
-        }
-        .price-box:hover {
-            transform: translateY(-2px);
-            border-color: rgba(34, 211, 238, 0.5);
-            box-shadow: 0 4px 12px rgba(34, 211, 238, 0.1);
-        }
-        
-        .calling-timer { 
-            font-size: 2.4rem; 
-            font-weight: bold; 
-            font-family: 'Courier New', monospace; 
-            color: #a5f3fc; 
-            animation: pulse 0.8s infinite, glow 2s ease-in-out infinite;
-        }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
-        @keyframes glow { 
-            0%, 100% { text-shadow: 0 0 10px rgba(165, 243, 252, 0.5); } 
-            50% { text-shadow: 0 0 20px rgba(165, 243, 252, 0.8), 0 0 30px rgba(165, 243, 252, 0.4); } 
-        }
-        
-        .bid-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-        .bid-btn { 
-            padding: 12px; 
-            border-radius: 8px; 
-            font-weight: 600; 
-            cursor: pointer; 
-            color: white; 
-            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
-        }
-        .bid-btn:hover {
-            background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
-            border-color: #22d3ee;
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.3);
-        }
-        .bid-btn:active {
-            transform: scale(0.98);
-        }
-        
-        .bidders-list { 
-            background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(30, 99, 145, 0.4)); 
-            border: 1px solid rgba(34, 211, 238, 0.3); 
-            border-radius: 20px; 
-            padding: 20px; 
-            max-height: 640px; 
-            overflow-y: auto;
-        }
-        .bidders-list::-webkit-scrollbar { width: 8px; }
-        .bidders-list::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.4); border-radius: 10px; }
-        .bidders-list::-webkit-scrollbar-thumb { background: rgba(34, 211, 238, 0.5); border-radius: 10px; }
-        .bidders-list::-webkit-scrollbar-thumb:hover { background: rgba(34, 211, 238, 0.7); }
-        
-        .bidder-item { 
-            padding: 10px; 
-            background: rgba(15, 23, 42, 0.6); 
-            border: 1px solid rgba(59, 130, 246, 0.3); 
-            border-radius: 8px; 
-            margin-bottom: 8px; 
-            display: flex; 
-            justify-content: space-between;
-            animation: slideIn 0.3s ease-out;
-            transition: all 0.3s ease;
-        }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
-        
-        .bidder-item:hover {
-            background: rgba(15, 23, 42, 0.8);
-            border-color: rgba(34, 211, 238, 0.5);
-            transform: translateX(4px);
-        }
-        
-        .hidden { display: none; }
-        
-        .message { 
-            padding: 12px; 
-            background: rgba(34, 197, 94, 0.12); 
-            border: 1px solid rgba(34, 197, 94, 0.2); 
-            border-radius: 8px; 
-            color: #86efac; 
-            text-align: center; 
-            font-weight: 600;
-            animation: messageSlide 0.3s ease-out;
-        }
-        @keyframes messageSlide { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .sold-overlay { 
-            position: fixed; 
-            inset: 0; 
-            background: rgba(0,0,0,0.95); 
-            display: none; 
-            justify-content: center; 
-            align-items: center; 
-            z-index: 1000; 
-            flex-direction: column; 
-            gap: 24px;
-            backdrop-filter: blur(10px);
-        }
-        .sold-overlay.active { display: flex; animation: overlayFade 0.5s ease-out; }
-        @keyframes overlayFade { from { opacity: 0; } to { opacity: 1; } }
-        
-        .hammer-animation { 
-            width: 120px; 
-            height: 120px; 
-            animation: hammerHit 0.8s ease-in-out forwards;
-            filter: drop-shadow(0 10px 30px rgba(212, 175, 55, 0.3));
-        }
-        @keyframes hammerHit { 
-            0% { transform: rotate(-45deg) translateY(-40px); } 
-            50% { transform: rotate(0deg) translateY(0px);} 
-            100% { transform: rotate(15deg) translateY(15px); } 
-        }
-        
-        .sold-message { 
-            font-size: 3rem; 
-            font-weight: bold; 
-            background: linear-gradient(90deg,#fbbf24 0%,#f97316 100%); 
-            -webkit-background-clip:text; 
-            -webkit-text-fill-color:transparent; 
-            animation: popIn 0.8s ease-out;
-            text-shadow: 0 0 30px rgba(251, 191, 36, 0.5);
-        }
-        @keyframes popIn { 
-            0% { opacity: 0; transform: scale(0.3) rotate(-10deg); } 
-            60% { transform: scale(1.1) rotate(2deg); }
-            100% { opacity: 1; transform: scale(1) rotate(0deg); } 
-        }
-        
-        .sold-details { 
-            color: #a5f3fc; 
-            font-size: 1.1rem; 
-            text-align: center;
-            animation: detailsFade 1s ease-out 0.5s both;
-        }
-        @keyframes detailsFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .property-info {
-            font-size: 1.1rem;
-            color: #93c5fd;
-            margin-bottom: 20px;
-            padding: 12px;
-            background: rgba(30, 58, 138, 0.3);
-            border-left: 3px solid #22d3ee;
-            border-radius: 6px;
-        }
+        /* (styles include animations and polished UI; kept concise for brevity) */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg,#0f172a 0%,#1e3a8a 50%,#0f172a 100%); color:white; min-height:100vh;}
+        .container{max-width:1400px;margin:0 auto;padding:20px;}
+        .header{padding:30px 0;margin-bottom:40px;border-bottom:2px solid rgba(34,211,238,0.2);animation:slideDown .6s;}
+        @keyframes slideDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+        .header h1{font-size:2.2rem;background:linear-gradient(90deg,#a5f3fc 0%,#60a5fa 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px;}
+        .input-group{display:flex;gap:10px;max-width:400px;}
+        input{flex:1;padding:12px;border-radius:8px;background:rgba(30,58,138,0.5);border:1px solid rgba(34,211,238,0.3);color:white}
+        button{padding:10px 16px;border-radius:8px;border:none;background:linear-gradient(90deg,#06b6d4 0%,#3b82f6 100%);color:white;cursor:pointer;transition:all .2s}
+        .main-content{display:grid;grid-template-columns:1fr 350px;gap:20px}
+        .auction-card{background:linear-gradient(135deg,rgba(30,58,138,0.35),rgba(30,99,145,0.35));border-radius:16px;padding:28px;animation:fadeIn .5s}
+        @keyframes fadeIn{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
+        .property-image{font-size:4rem;text-align:center;padding:24px 0;animation:float 3s ease-in-out infinite}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        .calling-timer{font-family:'Courier New',monospace;font-size:2.2rem;color:#a5f3fc;animation:pulse .8s infinite}
+        @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+        .bid-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+        .bid-btn{padding:12px;border-radius:8px;background:linear-gradient(135deg,#06b6d4 0%,#0891b2 100%);color:white;border:2px solid transparent;cursor:pointer;transition:all .2s}
+        .bid-btn:hover{transform:scale(1.03);box-shadow:0 6px 18px rgba(6,182,212,0.25)}
+        .bidders-list{background:linear-gradient(135deg,rgba(30,58,138,0.35),rgba(30,99,145,0.35));padding:16px;border-radius:12px;max-height:640px;overflow:auto}
+        .bidder-item{display:flex;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:8px;background:rgba(15,23,42,0.6);border:1px solid rgba(59,130,246,0.15)}
+        .sold-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:none;justify-content:center;align-items:center;z-index:1000;flex-direction:column;gap:18px;backdrop-filter:blur(10px)}
+        .sold-overlay.active{display:flex;animation:overlayFade .4s}
+        @keyframes overlayFade{from{opacity:0}to{opacity:1}}
+        .sold-message{font-size:2.8rem;font-weight:700;background:linear-gradient(90deg,#fbbf24 0%,#f97316 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .sold-details{color:#a5f3fc}
+        .hidden{display:none}
     </style>
 </head>
 <body>
     <div class="sold-overlay" id="soldOverlay">
-        <svg class="hammer-animation" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+        <svg class="hammer-animation" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="width:120px;height:120px;">
             <rect x="85" y="80" width="30" height="120" fill="#8B4513" rx="5"/>
             <ellipse cx="100" cy="75" rx="40" ry="12" fill="#D4AF37"/>
             <path d="M 60 50 Q 60 30 100 25 Q 140 30 140 50 L 140 75 Q 140 85 100 88 Q 60 85 60 75 Z" fill="#8B4513"/>
@@ -284,8 +48,8 @@
             <ellipse cx="100" cy="205" rx="42" ry="12" fill="#8B4513"/>
         </svg>
         <div class="sold-message">SOLD!</div>
-        <div class="sold-details" id="soldDetails">赢家: John - RM 600,000</div>
-        <div class="sold-details" id="soldWait">⏳ 等待老师进入下一件房产...</div>
+        <div class="sold-details" id="soldDetails">赢家: —</div>
+        <div class="sold-details">⏳ 等待老师进入下一件房产...</div>
     </div>
 
     <div class="container">
@@ -297,9 +61,7 @@
                     <button onclick="joinAuction()">加入竞拍</button>
                 </div>
             </div>
-            <div id="welcomeText" class="hidden">
-                欢迎, <span id="displayName"></span> 👋 | 参与人数: <span id="participantCount">0</span>/20
-            </div>
+            <div id="welcomeText" class="hidden">欢迎, <span id="displayName"></span> 👋 | 参与人数: <span id="participantCount">0</span>/20</div>
         </div>
 
         <div id="mainContent" class="hidden">
@@ -331,7 +93,7 @@
                         <div class="calling-timer" id="callingTimer">10</div>
                     </div>
 
-                    <div style="font-size: 0.9rem; color: #93c5fd; margin-bottom: 10px;">下一个出价必须至少: <strong id="minBidDisplay" style="color:#06b6d4;">RM 505,000</strong></div>
+                    <div style="font-size:0.9rem;color:#93c5fd;margin:10px 0">下一个出价至少: <strong id="minBidDisplay" style="color:#06b6d4">RM 505,000</strong></div>
 
                     <div class="bid-buttons">
                         <button class="bid-btn" onclick="placeBid(5000)">+RM 5,000</button>
@@ -344,16 +106,18 @@
                 </div>
 
                 <div class="bidders-list">
-                    <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 12px;">👥 竞价者排行</div>
-                    <div id="biddersList" style="text-align: center; color: #93c5fd; padding: 12px;">连接中...</div>
+                    <div style="font-weight:700;margin-bottom:8px">👥 竞价者排行</div>
+                    <div id="biddersList" style="text-align:center;color:#93c5fd;padding:8px">连接中...</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // ---------------- CONFIG: paste your anon key here ----------------
         const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
-        const SUPABASE_ANON_KEY = 'REPLACE_WITH_ANON_KEY';
+        const SUPABASE_ANON_KEY = 'REPLACE_WITH_ANON_KEY'; //eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MzM3NDEsImV4cCI6MjA4MzUwOTc0MX0.fxlPFVuHlwLG56bPOeP2s6qsoQn5aEgeBrdHfkvjvyM
+        // -------------------------------------------------------------------
 
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -398,7 +162,7 @@
                 const { data: allProps } = await sb.from('properties').select('*').order('id');
                 if (!allProps || allProps.length === 0) return;
 
-                // If teacher explicitly opened a property (opened_by_teacher flag), switch to it
+                // If teacher explicitly opened a property (opened_by_teacher), switch to it.
                 const teacherOpened = allProps.find(p => p.opened_by_teacher === true && p.id !== currentProperty);
                 if (teacherOpened) {
                     currentProperty = teacherOpened.id;
@@ -408,10 +172,8 @@
                         showMessage(`✨ 老师已打开下一件房产 ${teacherOpened.id}，页面已切换`);
                         lastTeacherOpenNotified = teacherOpened.id;
                     }
-                    // try to clear the flag (best-effort); teacher also clears it
-                    try { await sb.from('properties').update({ opened_by_teacher: false }).eq('id', teacherOpened.id); } catch(e){ console.warn('清理 opened_by_teacher 失败', e); }
+                    // DO NOT attempt to clear opened_by_teacher from student side (may be blocked by RLS).
                 } else {
-                    // keep currentProperty unless it disappears
                     let found = allProps.find(p => p.id === currentProperty);
                     if (!found) { found = allProps[0]; currentProperty = found.id; }
                     currentPropertyObj = found;
@@ -422,32 +184,28 @@
 
                 updateUI();
 
-                // sold overlay
                 if (currentPropertyObj && currentPropertyObj.status === 'sold') {
-                    if (!soldAlreadyShown) {
-                        showSoldOverlay();
-                        soldAlreadyShown = true;
-                    }
+                    if (!soldAlreadyShown) { showSoldOverlay(); soldAlreadyShown = true; }
                 } else {
-                    hideSoldOverlay();
-                    soldAlreadyShown = false;
+                    hideSoldOverlay(); soldAlreadyShown = false;
                 }
             } catch (err) {
-                console.error('加载错误:', err);
+                console.error('loadData error', err);
             }
         }
 
         async function placeBid(increment) {
             if (!currentPropertyObj) return;
             try {
-                const bidAmount = currentPropertyObj.current_price + increment;
-                // Simple direct write - if you later switch to RPC, replace this with sb.rpc('place_bid', ...)
+                const bidAmount = Number(currentPropertyObj.current_price || 0) + increment;
+                // NOTE: direct writes are OK for quick demo but can race under high concurrency.
+                // Consider using a DB RPC for atomic compare-and-set later.
                 await sb.from('properties').update({ current_price: bidAmount, highest_bidder: userName }).eq('id', currentProperty);
                 await sb.from('bidders').insert({ property_id: currentProperty, bidder_name: userName, bid_amount: bidAmount, created_at: new Date().toISOString() });
-                showMessage(`✓ ${userName} 成功出价 RM ${bidAmount.toLocaleString()}`);
+                showMessage(`✓ ${userName} 出价 RM ${bidAmount.toLocaleString()}`);
                 await loadData();
             } catch (err) {
-                console.error('出价错误:', err);
+                console.error('placeBid error', err);
                 showMessage('❌ 出价失败');
             }
         }
@@ -468,10 +226,14 @@
             setTimeout(()=>box.classList.add('hidden'), 3000);
         }
 
+        // Force animation replay and show overlay
         function showSoldOverlay() {
             if (!currentPropertyObj) return;
             document.getElementById('soldDetails').textContent = `赢家: ${currentPropertyObj.highest_bidder || '无'} - RM ${Number(currentPropertyObj.current_price || 0).toLocaleString()}`;
-            document.getElementById('soldOverlay').classList.add('active');
+            const el = document.getElementById('soldOverlay');
+            el.classList.remove('active');
+            void el.offsetWidth; // force reflow so animation restarts
+            el.classList.add('active');
         }
         function hideSoldOverlay() { document.getElementById('soldOverlay').classList.remove('active'); }
 
@@ -484,8 +246,12 @@
         function updateDisplay() {
             if (!currentPropertyObj) return;
             const info = propertyInfo[currentProperty] || propertyInfo[1];
-            const minBid = (Number(currentPropertyObj.current_price || 0) + (info.increment || 5000));
-            document.getElementById('propertyImage').textContent = info.image;
+            const minBid = Number(currentPropertyObj.current_price || 0) + (info.increment || 5000);
+            const imgEl = document.getElementById('propertyImage');
+
+            // if you later use imageUrl, swap innerHTML to <img> tag; for now we use emoji fallback
+            imgEl.textContent = info.image;
+
             document.getElementById('propertyAddress').textContent = info.address;
             document.getElementById('propertyDescription').textContent = info.description;
             document.getElementById('openingPrice').textContent = `RM ${info.openingBid.toLocaleString()}`;
@@ -509,7 +275,7 @@
 
         function updateBidders() {
             if (!bidders || bidders.length === 0) {
-                document.getElementById('biddersList').innerHTML = '<div style="color: #93c5fd;">等待竞价者...</div>';
+                document.getElementById('biddersList').innerHTML = '<div style="color:#93c5fd">等待竞价者...</div>';
                 return;
             }
             const map = {};
@@ -517,9 +283,7 @@
                 if (!map[b.bidder_name] || b.bid_amount > map[b.bidder_name]) map[b.bidder_name] = b.bid_amount;
             });
             const sorted = Object.entries(map).map(([name, amount]) => ({ name, amount })).sort((a,b)=>b.amount-a.amount);
-            document.getElementById('biddersList').innerHTML = sorted.map((b,i)=>`
-                <div class="bidder-item"><span style="color:#a5f3fc;">${i+1}. ${b.name}</span><span style="color:#fbbf24;">RM ${b.amount.toLocaleString()}</span></div>
-            `).join('');
+            document.getElementById('biddersList').innerHTML = sorted.map((b,i)=>`<div class="bidder-item"><span>${i+1}. ${b.name}</span><span>RM ${b.amount.toLocaleString()}</span></div>`).join('');
         }
 
         function updateParticipants() {
