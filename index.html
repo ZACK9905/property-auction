@@ -70,8 +70,7 @@
             display: flex !important;
         }
         .hammer-animation {
-            width: 120px;
-            height: 120px;
+            font-size: 120px;
             animation: hammerHit 0.8s ease-in-out forwards;
         }
         @keyframes hammerHit {
@@ -110,15 +109,7 @@
 </head>
 <body>
     <div class="sold-overlay" id="soldOverlay">
-        <svg class="hammer-animation" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
-            <rect x="85" y="80" width="30" height="120" fill="#8B4513" rx="5"/>
-            <ellipse cx="100" cy="75" rx="40" ry="12" fill="#D4AF37"/>
-            <path d="M 60 50 Q 60 30 100 25 Q 140 30 140 50 L 140 75 Q 140 85 100 88 Q 60 85 60 75 Z" fill="#8B4513"/>
-            <ellipse cx="100" cy="50" rx="38" ry="15" fill="#D4AF37" opacity="0.8"/>
-            <ellipse cx="100" cy="45" rx="35" ry="10" fill="#FFD700" opacity="0.6"/>
-            <ellipse cx="100" cy="210" rx="45" ry="15" fill="#654321"/>
-            <ellipse cx="100" cy="205" rx="42" ry="12" fill="#8B4513"/>
-        </svg>
+        <div class="hammer-animation">⚒️</div>
         <div class="sold-message">SOLD!</div>
         <div class="sold-details" id="soldDetails">赢家: John - RM 600,000</div>
         <div class="waiting-message">⏳ 等待老师进入下一件房产...</div>
@@ -197,8 +188,7 @@
         let currentProperty = 1;
         let currentPropertyObj = null;
         let bidders = null;
-        let soldAlreadyShown = false;
-        let previousStatus = null;
+        let lastSeenStatus = null;
 
         async function joinAuction() {
             const input = document.getElementById('userNameInput');
@@ -228,32 +218,25 @@
                 const { data: allProps } = await sb.from('properties').select('*').order('id');
                 if (!allProps || allProps.length === 0) return;
 
-                let activeProp = allProps.find(p => p.status === 'open');
-                
-                // 如果没有 open 的房产，保持当前房产（即使是 sold）
-                if (!activeProp) {
-                    activeProp = allProps.find(p => p.id === currentProperty);
+                // 找 open 状态的房产
+                const openProp = allProps.find(p => p.status === 'open');
+                if (openProp) {
+                    currentPropertyObj = openProp;
+                    currentProperty = openProp.id;
                 }
-                
-                // 如果还是找不到（比如第一次加载），用第一个
-                if (!activeProp) {
-                    activeProp = allProps[0];
-                    currentProperty = activeProp.id;
-                }
-
-                currentPropertyObj = activeProp;
-                currentProperty = activeProp.id;
 
                 const { data: biddersData } = await sb.from('bidders').select('*').eq('property_id', currentProperty);
                 bidders = biddersData || [];
 
                 updateUI();
 
-                // 检查成交 - 只在从 open 变成 sold 时显示一次
-                if (previousStatus === 'open' && activeProp.status === 'sold') {
+                // 检查成交 - 只在从 open 变成 sold 时显示
+                if (currentPropertyObj && lastSeenStatus === 'open' && currentPropertyObj.status === 'sold') {
                     showSoldOverlay();
                 }
-                previousStatus = activeProp.status;
+                if (currentPropertyObj) {
+                    lastSeenStatus = currentPropertyObj.status;
+                }
             } catch (err) {
                 console.error('加载错误:', err);
             }
