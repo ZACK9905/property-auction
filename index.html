@@ -229,8 +229,16 @@
                 if (!allProps || allProps.length === 0) return;
 
                 let activeProp = allProps.find(p => p.status === 'open');
+                
+                // 如果没有 open 的房产，保持当前房产（即使是 sold）
                 if (!activeProp) {
-                    activeProp = allProps.find(p => p.id === currentProperty) || allProps[0];
+                    activeProp = allProps.find(p => p.id === currentProperty);
+                }
+                
+                // 如果还是找不到（比如第一次加载），用第一个
+                if (!activeProp) {
+                    activeProp = allProps[0];
+                    currentProperty = activeProp.id;
                 }
 
                 currentPropertyObj = activeProp;
