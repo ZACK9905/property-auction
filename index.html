@@ -162,8 +162,10 @@
                 if (!allProps || allProps.length === 0) return;
 
                 // If teacher explicitly opened a property (opened_by_teacher), switch to it.
-                const teacherOpened = allProps.find(p => p.opened_by_teacher === true && p.id !== currentProperty);
-                if (teacherOpened) {
+                const teacherOpened = teacherOpened = allProps
+                    .filter(p => p.opened_by_teacher === true)
+                    .sort((a, b) => b.id - a.id)[0];
+                if (teacherOpened && teacherOpened.id !== currentProperty) {
                     currentProperty = teacherOpened.id;
                     currentPropertyObj = teacherOpened;
                     soldAlreadyShown = false;
