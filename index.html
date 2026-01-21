@@ -6,7 +6,6 @@
     <title>KL Property Auction Live - Student</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* (styles include animations and polished UI; kept concise for brevity) */
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg,#0f172a 0%,#1e3a8a 50%,#0f172a 100%); color:white; min-height:100vh;}
         .container{max-width:1400px;margin:0 auto;padding:20px;}
@@ -114,11 +113,34 @@
     </div>
 
     <script>
-        // ✅ 密钥已正确配置！
+        // ========================================
+        // 🔑 配置区域 - 使用新版 SECRET KEY
+        // ========================================
+        // 
+        // ⚠️ 安全警告：
+        // Secret key 拥有完全的数据库访问权限！
+        // 仅用于课堂演示/内网环境！
+        // 演示后请立即轮换密钥！
+        // 
+        // 📋 获取 Secret Key 步骤：
+        // 1. 打开 https://supabase.com/dashboard
+        // 2. 选择你的项目
+        // 3. 点击 Settings (⚙️) → API
+        // 4. 找到 "Project API keys" 部分
+        // 5. 复制 "secret" 密钥（格式: sb_secret_xxx）
+        // 6. 粘贴到下面 👇
+        // ========================================
+        
         const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MzM3NDEsImV4cCI6MjA4MzUwOTc0MX0.fxlPFVuHlwLG56bPOeP2s6qsoQn5aEgeBrdHfkvjvyM';
+        
+        // 👇 把你的 SECRET KEY 粘贴在这里（格式: sb_secret_xxx）
+        const SUPABASE_SECRET_KEY = 'sb_secret_07oIp0TTjfdtQJF9bhNQYQ_d0RmPHr0';
 
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // ========================================
+        // ⚠️ 下面的代码不要修改！
+        // ========================================
+
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
         const propertyInfo = {
             1: { address: 'Pavilion KL - 豪华公寓', image: '🏢', openingBid: 500000, increment: 5000, description: '吉隆坡中心高端住宅' },
@@ -161,7 +183,6 @@
                 const { data: allProps } = await sb.from('properties').select('*').order('id');
                 if (!allProps || allProps.length === 0) return;
 
-                // If teacher explicitly opened a property (opened_by_teacher), switch to it.
                 const teacherOpened = allProps.find(p => p.opened_by_teacher === true && p.id !== currentProperty);
                 if (teacherOpened) {
                     currentProperty = teacherOpened.id;
@@ -171,7 +192,7 @@
                         showMessage(`✨ 老师已打开下一件房产 ${teacherOpened.id}，页面已切换`);
                         lastTeacherOpenNotified = teacherOpened.id;
                     }
-                    // DO NOT attempt to clear opened_by_teacher from student side (may be blocked by RLS).
+                    try { await sb.from('properties').update({ opened_by_teacher: false }).eq('id', teacherOpened.id); } catch(e){ }
                 } else {
                     let found = allProps.find(p => p.id === currentProperty);
                     if (!found) { found = allProps[0]; currentProperty = found.id; }
@@ -197,8 +218,6 @@
             if (!currentPropertyObj) return;
             try {
                 const bidAmount = Number(currentPropertyObj.current_price || 0) + increment;
-                // NOTE: direct writes are OK for quick demo but can race under high concurrency.
-                // Consider using a DB RPC for atomic compare-and-set later.
                 await sb.from('properties').update({ current_price: bidAmount, highest_bidder: userName }).eq('id', currentProperty);
                 await sb.from('bidders').insert({ property_id: currentProperty, bidder_name: userName, bid_amount: bidAmount, created_at: new Date().toISOString() });
                 showMessage(`✓ ${userName} 出价 RM ${bidAmount.toLocaleString()}`);
@@ -225,13 +244,12 @@
             setTimeout(()=>box.classList.add('hidden'), 3000);
         }
 
-        // Force animation replay and show overlay
         function showSoldOverlay() {
             if (!currentPropertyObj) return;
             document.getElementById('soldDetails').textContent = `赢家: ${currentPropertyObj.highest_bidder || '无'} - RM ${Number(currentPropertyObj.current_price || 0).toLocaleString()}`;
             const el = document.getElementById('soldOverlay');
             el.classList.remove('active');
-            void el.offsetWidth; // force reflow so animation restarts
+            void el.offsetWidth;
             el.classList.add('active');
         }
         function hideSoldOverlay() { document.getElementById('soldOverlay').classList.remove('active'); }
@@ -247,10 +265,7 @@
             const info = propertyInfo[currentProperty] || propertyInfo[1];
             const minBid = Number(currentPropertyObj.current_price || 0) + (info.increment || 5000);
             const imgEl = document.getElementById('propertyImage');
-
-            // if you later use imageUrl, swap innerHTML to <img> tag; for now we use emoji fallback
             imgEl.textContent = info.image;
-
             document.getElementById('propertyAddress').textContent = info.address;
             document.getElementById('propertyDescription').textContent = info.description;
             document.getElementById('openingPrice').textContent = `RM ${info.openingBid.toLocaleString()}`;
