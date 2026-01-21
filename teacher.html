@@ -340,17 +340,27 @@
         }
 
         async function openNextProperty() {
-            try {
-                const nextId = selectedProperty + 1;
-                if (!allProperties[nextId]) { showMessage('❌ 没有下一件房产可打开', true); return; }
+           const nextId = selectedProperty + 1;
+           if (!allProperties[nextId]) {
+               showMessage('❌ 沒有下一件房产', true);
+               return;
+           }
+           await sb.from('properties')
+               .update({ opened_by_teacher: false })
+               .neq('id', nextId);
 
-                await sb.from('properties').update({
-                    status: 'open',
-                    stage: 0,
-                    timer: 0,
-                    opened_by_teacher: true,
-                    opened_by_teacher_at: new Date().toISOString()
-                }).eq('id', nextId);
+  // 2️⃣ 正式打開下一件
+           await sb.from('properties').update({
+               status: 'open',
+               stage: 0,
+               timer: 0,
+               opened_by_teacher: true,
+               opened_by_teacher_at: new Date().toISOString()
+           }).eq('id', nextId);
+
+           showMessage(`✓ 已打开房产 ${nextId}`);
+           await loadData();
+        }
 
                 setTimeout(async () => {
                     try { await sb.from('properties').update({ opened_by_teacher: false }).eq('id', nextId); } catch(e){ console.error('cleanup opened_by_teacher failed', e); }
