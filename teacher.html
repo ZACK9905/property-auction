@@ -222,7 +222,7 @@
         const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
         const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzkzMzc0MSwiZXhwIjoyMDgzNTA5NzQxfQ.EWmE8zCzdIUln73QZeZVppGgLqUvPMiGyWI3yN0jI0M';
 
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
         let selectedProperty = 1;
         let allProperties = {};
