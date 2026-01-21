@@ -160,8 +160,8 @@
                 const { data: allProps } = await sb.from('properties').select('*').order('id');
                 if (!allProps || allProps.length === 0) return;
 
-                // If teacher explicitly opened a property (opened_by_teacher), switch to it.
-                const teacherOpened = teacherOpened = allProps
+                // ✅ 修复：移除重复的变量声明
+                const teacherOpened = allProps
                     .filter(p => p.opened_by_teacher === true)
                     .sort((a, b) => b.id - a.id)[0];
                 if (teacherOpened && teacherOpened.id !== currentProperty) {
