@@ -218,34 +218,11 @@
     </div>
 
     <script>
-        // ========================================
-        // 🔑 配置区域 - 使用新版 SECRET KEY
-        // ========================================
-        // 
-        // ⚠️ 安全警告：
-        // Secret key 拥有完全的数据库访问权限！
-        // 仅用于课堂演示/内网环境！
-        // 演示后请立即轮换密钥！
-        // 
-        // 📋 获取 Secret Key 步骤：
-        // 1. 打开 https://supabase.com/dashboard
-        // 2. 选择你的项目
-        // 3. 点击 Settings (⚙️) → API
-        // 4. 找到 "Project API keys" 部分
-        // 5. 复制 "secret" 密钥（格式: sb_secret_xxx）
-        // 6. 粘贴到下面 👇
-        // ========================================
-        
+        // ✅ 密钥已正确配置！
         const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
-        
-        // 👇 把你的 SECRET KEY 粘贴在这里（与学生端使用相同的密钥）
-        const SUPABASE_SECRET_KEY = 'sb_secret_07oIp0TTjfdtQJF9bhNQYQ_d0RmPHr0';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MzM3NDEsImV4cCI6MjA4MzUwOTc0MX0.fxlPFVuHlwLG56bPOeP2s6qsoQn5aEgeBrdHfkvjvyM';
 
-        // ========================================
-        // ⚠️ 下面的代码不要修改！
-        // ========================================
-
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let selectedProperty = 1;
         let allProperties = {};
