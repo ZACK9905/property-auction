@@ -218,7 +218,6 @@
     </div>
 
     <script>
-        // ✅ 密钥已正确配置！
         const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
         const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzkzMzc0MSwiZXhwIjoyMDgzNTA5NzQxfQ.EWmE8zCzdIUln73QZeZVppGgLqUvPMiGyWI3yN0jI0M';
 
@@ -339,36 +338,38 @@
             } catch (err) { console.error(err); showMessage('❌ 失败: ' + err.message, true); }
         }
 
+        // ✅ 修复：完整重写 openNextProperty 函数
         async function openNextProperty() {
-           const nextId = selectedProperty + 1;
-           if (!allProperties[nextId]) {
-               showMessage('❌ 沒有下一件房产', true);
-               return;
-           }
-           await sb.from('properties')
-               .update({ opened_by_teacher: false })
-               .neq('id', nextId);
+            try {
+                const nextId = selectedProperty + 1;
+                if (!allProperties[nextId]) {
+                    showMessage('❌ 沒有下一件房产', true);
+                    return;
+                }
+                
+                await sb.from('properties')
+                    .update({ opened_by_teacher: false })
+                    .neq('id', nextId);
 
-  // 2️⃣ 正式打開下一件
-           await sb.from('properties').update({
-               status: 'open',
-               stage: 0,
-               timer: 0,
-               opened_by_teacher: true,
-               opened_by_teacher_at: new Date().toISOString()
-           }).eq('id', nextId);
-
-           showMessage(`✓ 已打开房产 ${nextId}`);
-           await loadData();
-        }
+                await sb.from('properties').update({
+                    status: 'open',
+                    stage: 0,
+                    timer: 0,
+                    opened_by_teacher: true,
+                    opened_by_teacher_at: new Date().toISOString()
+                }).eq('id', nextId);
 
                 setTimeout(async () => {
-                    try { await sb.from('properties').update({ opened_by_teacher: false }).eq('id', nextId); } catch(e){ console.error('cleanup opened_by_teacher failed', e); }
+                    try { await sb.from('properties').update({ opened_by_teacher: false }).eq('id', nextId); } 
+                    catch(e){ console.error('cleanup opened_by_teacher failed', e); }
                 }, 1500);
 
-                showMessage('✓ 已手动打开下一件房产：' + nextId);
+                showMessage(`✓ 已打开房产 ${nextId}`);
                 await loadData();
-            } catch (err) { console.error(err); showMessage('❌ 失败: ' + err.message, true); }
+            } catch (err) { 
+                console.error(err); 
+                showMessage('❌ 失败: ' + err.message, true); 
+            }
         }
 
         function updateDisplay() {
