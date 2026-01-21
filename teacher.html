@@ -259,7 +259,16 @@
             if (!confirm('确定要重置房产 ' + selectedProperty + ' 吗？所有竞价记录将被清空！')) return;
             try {
                 const openingBid = openingBids[selectedProperty];
-                await sb.from('properties').update({
+                
+                // ✅ 修复：先删除 bidders，再更新 properties
+                const { error: deleteError } = await sb.from('bidders').delete().eq('property_id', selectedProperty);
+                if (deleteError) {
+                    console.error('删除竞价记录错误:', deleteError);
+                    showMessage('❌ 删除竞价记录失败: ' + deleteError.message, true);
+                    return;
+                }
+
+                const { error: updateError } = await sb.from('properties').update({
                     current_price: openingBid,
                     highest_bidder: null,
                     stage: 0,
@@ -272,7 +281,11 @@
                     opened_by_teacher: false
                 }).eq('id', selectedProperty);
 
-                await sb.from('bidders').delete().eq('property_id', selectedProperty);
+                if (updateError) {
+                    console.error('更新房产错误:', updateError);
+                    showMessage('❌ 更新房产失败: ' + updateError.message, true);
+                    return;
+                }
 
                 showMessage('✓ 房产已重置！');
                 await loadData();
@@ -338,7 +351,6 @@
             } catch (err) { console.error(err); showMessage('❌ 失败: ' + err.message, true); }
         }
 
-        // ✅ 修复：完整重写 openNextProperty 函数
         async function openNextProperty() {
             try {
                 const nextId = selectedProperty + 1;
