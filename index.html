@@ -214,12 +214,12 @@
                     currentPropertyObj = found;
                 }
 
-                // ✅ 修復：使用正確的 order 語法
+                // ✅ 修復：只使用 id 排序（不依賴 created_at）
                 const { data: biddersData, error: biddersError } = await sb
                     .from('bidders')
                     .select('*')
                     .eq('property_id', currentProperty)
-                    .order('created_at', { ascending: false });
+                    .order('id', { ascending: false });
                 
                 if (biddersError) {
                     console.error('Bidders error:', biddersError);
@@ -274,13 +274,13 @@
                     return;
                 }
 
+                // ✅ 修復：移除 created_at，讓 Supabase 自動處理
                 const { error: insertError } = await sb
                     .from('bidders')
                     .insert({ 
                         property_id: currentProperty, 
                         bidder_name: userName, 
-                        bid_amount: bidAmount, 
-                        created_at: new Date().toISOString() 
+                        bid_amount: bidAmount
                     });
 
                 if (insertError) {
