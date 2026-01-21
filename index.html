@@ -6,7 +6,6 @@
     <title>KL Property Auction Live - Student</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* (styles include animations and polished UI; kept concise for brevity) */
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg,#0f172a 0%,#1e3a8a 50%,#0f172a 100%); color:white; min-height:100vh;}
         .container{max-width:1400px;margin:0 auto;padding:20px;}
@@ -15,25 +14,47 @@
         .header h1{font-size:2.2rem;background:linear-gradient(90deg,#a5f3fc 0%,#60a5fa 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px;}
         .input-group{display:flex;gap:10px;max-width:400px;}
         input{flex:1;padding:12px;border-radius:8px;background:rgba(30,58,138,0.5);border:1px solid rgba(34,211,238,0.3);color:white}
+        input::placeholder{color:rgba(255,255,255,0.5)}
         button{padding:10px 16px;border-radius:8px;border:none;background:linear-gradient(90deg,#06b6d4 0%,#3b82f6 100%);color:white;cursor:pointer;transition:all .2s}
+        button:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(6,182,212,0.3)}
         .main-content{display:grid;grid-template-columns:1fr 350px;gap:20px}
-        .auction-card{background:linear-gradient(135deg,rgba(30,58,138,0.35),rgba(30,99,145,0.35));border-radius:16px;padding:28px;animation:fadeIn .5s}
+        .auction-card{background:linear-gradient(135deg,rgba(30,58,138,0.35),rgba(30,99,145,0.35));border-radius:16px;padding:28px;animation:fadeIn .5s;border:1px solid rgba(34,211,238,0.2)}
         @keyframes fadeIn{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
         .property-image{font-size:4rem;text-align:center;padding:24px 0;animation:float 3s ease-in-out infinite}
         @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-        .calling-timer{font-family:'Courier New',monospace;font-size:2.2rem;color:#a5f3fc;animation:pulse .8s infinite}
+        .property-address{font-size:1.5rem;color:#a5f3fc;margin-bottom:8px}
+        .property-description{color:#93c5fd;margin-bottom:20px}
+        .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
+        .price-box{background:rgba(15,23,42,0.6);padding:16px;border-radius:10px;border:1px solid rgba(59,130,246,0.2)}
+        .price-box.active{border-color:rgba(6,182,212,0.5)}
+        .price-label{color:#93c5fd;font-size:0.85rem;margin-bottom:6px}
+        .price-amount{color:#06b6d4;font-size:1.4rem;font-weight:700}
+        .bidder-info{background:rgba(15,23,42,0.6);padding:16px;border-radius:10px;margin:16px 0;border:1px solid rgba(59,130,246,0.2)}
+        .bidder-name{color:#fbbf24;font-size:1.2rem;font-weight:600}
+        .calling-status{background:rgba(239,68,68,0.15);padding:16px;border-radius:10px;margin:16px 0;border:2px solid rgba(239,68,68,0.3)}
+        .calling-text{font-size:1.1rem;font-weight:600;margin-bottom:8px}
+        .calling-text.first{color:#fbbf24}
+        .calling-text.second{color:#fb923c}
+        .calling-text.third{color:#ef4444}
+        .calling-timer{font-family:'Courier New',monospace;font-size:2.2rem;color:#a5f3fc;animation:pulse .8s infinite;text-align:center}
         @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
         .bid-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-        .bid-btn{padding:12px;border-radius:8px;background:linear-gradient(135deg,#06b6d4 0%,#0891b2 100%);color:white;border:2px solid transparent;cursor:pointer;transition:all .2s}
-        .bid-btn:hover{transform:scale(1.03);box-shadow:0 6px 18px rgba(6,182,212,0.25)}
-        .bidders-list{background:linear-gradient(135deg,rgba(30,58,138,0.35),rgba(30,99,145,0.35));padding:16px;border-radius:12px;max-height:640px;overflow:auto}
-        .bidder-item{display:flex;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:8px;background:rgba(15,23,42,0.6);border:1px solid rgba(59,130,246,0.15)}
+        .bid-btn{padding:12px;border-radius:8px;background:linear-gradient(135deg,#06b6d4 0%,#0891b2 100%);color:white;border:2px solid transparent;cursor:pointer;transition:all .2s;font-weight:600}
+        .bid-btn:hover{transform:scale(1.03);box-shadow:0 6px 18px rgba(6,182,212,0.25);border-color:rgba(165,243,252,0.5)}
+        .bid-btn:active{transform:scale(0.98)}
+        .bidders-list{background:linear-gradient(135deg,rgba(30,58,138,0.35),rgba(30,99,145,0.35));padding:16px;border-radius:12px;max-height:640px;overflow:auto;border:1px solid rgba(34,211,238,0.2)}
+        .bidder-item{display:flex;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:8px;background:rgba(15,23,42,0.6);border:1px solid rgba(59,130,246,0.15);transition:all .2s}
+        .bidder-item:hover{border-color:rgba(6,182,212,0.4);transform:translateX(2px)}
         .sold-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:none;justify-content:center;align-items:center;z-index:1000;flex-direction:column;gap:18px;backdrop-filter:blur(10px)}
         .sold-overlay.active{display:flex;animation:overlayFade .4s}
         @keyframes overlayFade{from{opacity:0}to{opacity:1}}
-        .sold-message{font-size:2.8rem;font-weight:700;background:linear-gradient(90deg,#fbbf24 0%,#f97316 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-        .sold-details{color:#a5f3fc}
+        .sold-message{font-size:2.8rem;font-weight:700;background:linear-gradient(90deg,#fbbf24 0%,#f97316 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:celebration 1s ease-in-out}
+        @keyframes celebration{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+        .sold-details{color:#a5f3fc;font-size:1.2rem}
+        .message-box{padding:12px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);border-radius:8px;color:#86efac;margin-top:12px;animation:slideIn .3s}
+        @keyframes slideIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
         .hidden{display:none}
+        .property-info{color:#fbbf24;font-weight:600;margin-bottom:16px;font-size:1.1rem}
     </style>
 </head>
 <body>
@@ -47,7 +68,7 @@
             <ellipse cx="100" cy="210" rx="45" ry="15" fill="#654321"/>
             <ellipse cx="100" cy="205" rx="42" ry="12" fill="#8B4513"/>
         </svg>
-        <div class="sold-message">SOLD!</div>
+        <div class="sold-message">SOLD! 🎉</div>
         <div class="sold-details" id="soldDetails">赢家: —</div>
         <div class="sold-details">⏳ 等待老师进入下一件房产...</div>
     </div>
@@ -102,7 +123,7 @@
                         <button class="bid-btn" onclick="placeBid(25000)">+RM 25,000</button>
                     </div>
 
-                    <div id="messageBox" class="hidden"></div>
+                    <div id="messageBox" class="message-box hidden"></div>
                 </div>
 
                 <div class="bidders-list">
@@ -114,7 +135,6 @@
     </div>
 
     <script>
-        // ✅ 密钥已正确配置！
         const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MzM3NDEsImV4cCI6MjA4MzUwOTc0MX0.fxlPFVuHlwLG56bPOeP2s6qsoQn5aEgeBrdHfkvjvyM';
 
@@ -137,7 +157,10 @@
         async function joinAuction() {
             const input = document.getElementById('userNameInput');
             userName = input.value.trim();
-            if (!userName) { alert('请输入你的名字！'); return; }
+            if (!userName) { 
+                alert('请输入你的名字！'); 
+                return; 
+            }
 
             document.getElementById('userInputSection').classList.add('hidden');
             document.getElementById('welcomeText').classList.remove('hidden');
@@ -157,13 +180,23 @@
 
         async function loadData() {
             try {
-                const { data: allProps } = await sb.from('properties').select('*').order('id');
+                const { data: allProps, error: propsError } = await sb
+                    .from('properties')
+                    .select('*')
+                    .order('id', { ascending: true });
+                
+                if (propsError) {
+                    console.error('Properties error:', propsError);
+                    showMessage('❌ 連接失敗：' + propsError.message);
+                    return;
+                }
+
                 if (!allProps || allProps.length === 0) return;
 
-                // ✅ 修复：移除重复的变量声明
                 const teacherOpened = allProps
                     .filter(p => p.opened_by_teacher === true)
                     .sort((a, b) => b.id - a.id)[0];
+                
                 if (teacherOpened && teacherOpened.id !== currentProperty) {
                     currentProperty = teacherOpened.id;
                     currentPropertyObj = teacherOpened;
@@ -172,41 +205,95 @@
                         showMessage(`✨ 老师已打开下一件房产 ${teacherOpened.id}，页面已切换`);
                         lastTeacherOpenNotified = teacherOpened.id;
                     }
-                    // DO NOT attempt to clear opened_by_teacher from student side (may be blocked by RLS).
                 } else {
                     let found = allProps.find(p => p.id === currentProperty);
-                    if (!found) { found = allProps[0]; currentProperty = found.id; }
+                    if (!found) { 
+                        found = allProps[0]; 
+                        currentProperty = found.id; 
+                    }
                     currentPropertyObj = found;
                 }
 
-                const { data: biddersData } = await sb.from('bidders').select('*').eq('property_id', currentProperty).order('created_at', { ascending: false });
-                bidders = biddersData || [];
+                // ✅ 修復：使用正確的 order 語法
+                const { data: biddersData, error: biddersError } = await sb
+                    .from('bidders')
+                    .select('*')
+                    .eq('property_id', currentProperty)
+                    .order('created_at', { ascending: false });
+                
+                if (biddersError) {
+                    console.error('Bidders error:', biddersError);
+                    showMessage('❌ 競價記錄載入失敗');
+                    bidders = [];
+                } else {
+                    bidders = biddersData || [];
+                }
 
                 updateUI();
 
                 if (currentPropertyObj && currentPropertyObj.status === 'sold') {
-                    if (!soldAlreadyShown) { showSoldOverlay(); soldAlreadyShown = true; }
+                    if (!soldAlreadyShown) { 
+                        showSoldOverlay(); 
+                        soldAlreadyShown = true; 
+                    }
                 } else {
-                    hideSoldOverlay(); soldAlreadyShown = false;
+                    hideSoldOverlay(); 
+                    soldAlreadyShown = false;
                 }
             } catch (err) {
-                console.error('loadData error', err);
+                console.error('loadData error:', err);
+                showMessage('❌ 系統錯誤：' + err.message);
             }
         }
 
         async function placeBid(increment) {
-            if (!currentPropertyObj) return;
+            if (!currentPropertyObj) {
+                showMessage('❌ 房產資訊未載入');
+                return;
+            }
+            
+            if (currentPropertyObj.status === 'sold') {
+                showMessage('❌ 此房產已成交');
+                return;
+            }
+
             try {
                 const bidAmount = Number(currentPropertyObj.current_price || 0) + increment;
-                // NOTE: direct writes are OK for quick demo but can race under high concurrency.
-                // Consider using a DB RPC for atomic compare-and-set later.
-                await sb.from('properties').update({ current_price: bidAmount, highest_bidder: userName }).eq('id', currentProperty);
-                await sb.from('bidders').insert({ property_id: currentProperty, bidder_name: userName, bid_amount: bidAmount, created_at: new Date().toISOString() });
+                
+                const { error: updateError } = await sb
+                    .from('properties')
+                    .update({ 
+                        current_price: bidAmount, 
+                        highest_bidder: userName 
+                    })
+                    .eq('id', currentProperty);
+
+                if (updateError) {
+                    console.error('Update error:', updateError);
+                    showMessage('❌ 出價失敗：' + updateError.message);
+                    return;
+                }
+
+                const { error: insertError } = await sb
+                    .from('bidders')
+                    .insert({ 
+                        property_id: currentProperty, 
+                        bidder_name: userName, 
+                        bid_amount: bidAmount, 
+                        created_at: new Date().toISOString() 
+                    });
+
+                if (insertError) {
+                    console.error('Insert error:', insertError);
+                    showMessage('❌ 記錄失敗：' + insertError.message);
+                    return;
+                }
+
                 showMessage(`✓ ${userName} 出价 RM ${bidAmount.toLocaleString()}`);
                 await loadData();
             } catch (err) {
-                console.error('placeBid error', err);
-                showMessage('❌ 出价失败');
+                console.error('placeBid error:', err);
+                showMessage('❌ 出价失败：' + err.message);
             }
         }
 
@@ -226,16 +313,18 @@
             setTimeout(()=>box.classList.add('hidden'), 3000);
         }
 
-        // Force animation replay and show overlay
         function showSoldOverlay() {
             if (!currentPropertyObj) return;
             document.getElementById('soldDetails').textContent = `赢家: ${currentPropertyObj.highest_bidder || '无'} - RM ${Number(currentPropertyObj.current_price || 0).toLocaleString()}`;
             const el = document.getElementById('soldOverlay');
             el.classList.remove('active');
-            void el.offsetWidth; // force reflow so animation restarts
+            void el.offsetWidth;
             el.classList.add('active');
         }
-        function hideSoldOverlay() { document.getElementById('soldOverlay').classList.remove('active'); }
+
+        function hideSoldOverlay() { 
+            document.getElementById('soldOverlay').classList.remove('active'); 
+        }
 
         function updateUI() {
             updateDisplay();
@@ -249,7 +338,6 @@
             const minBid = Number(currentPropertyObj.current_price || 0) + (info.increment || 5000);
             const imgEl = document.getElementById('propertyImage');
 
-            // if you later use imageUrl, swap innerHTML to <img> tag; for now we use emoji fallback
             imgEl.textContent = info.image;
 
             document.getElementById('propertyAddress').textContent = info.address;
@@ -266,7 +354,9 @@
                 const stages = ['', '1st Calling', '2nd Calling', '3rd Calling - Going Once...'];
                 const callingText = document.getElementById('callingText');
                 callingText.textContent = stages[currentPropertyObj.stage] || 'Calling';
-                callingText.className = currentPropertyObj.stage === 1 ? 'calling-text first' : currentPropertyObj.stage === 2 ? 'calling-text second' : 'calling-text third';
+                callingText.className = currentPropertyObj.stage === 1 ? 'calling-text first' : 
+                                       currentPropertyObj.stage === 2 ? 'calling-text second' : 
+                                       'calling-text third';
                 document.getElementById('callingTimer').textContent = currentPropertyObj.timer;
             } else {
                 callingDiv.classList.add('hidden');
@@ -280,19 +370,31 @@
             }
             const map = {};
             bidders.forEach(b => {
-                if (!map[b.bidder_name] || b.bid_amount > map[b.bidder_name]) map[b.bidder_name] = b.bid_amount;
+                if (!map[b.bidder_name] || b.bid_amount > map[b.bidder_name]) {
+                    map[b.bidder_name] = b.bid_amount;
+                }
             });
-            const sorted = Object.entries(map).map(([name, amount]) => ({ name, amount })).sort((a,b)=>b.amount-a.amount);
-            document.getElementById('biddersList').innerHTML = sorted.map((b,i)=>`<div class="bidder-item"><span>${i+1}. ${b.name}</span><span>RM ${b.amount.toLocaleString()}</span></div>`).join('');
+            const sorted = Object.entries(map)
+                .map(([name, amount]) => ({ name, amount }))
+                .sort((a,b)=>b.amount-a.amount);
+            
+            document.getElementById('biddersList').innerHTML = sorted
+                .map((b,i)=>`<div class="bidder-item"><span>${i+1}. ${b.name}</span><span>RM ${b.amount.toLocaleString()}</span></div>`)
+                .join('');
         }
 
         function updateParticipants() {
-            if (!bidders) { document.getElementById('participantCount').textContent = '0'; return; }
+            if (!bidders) { 
+                document.getElementById('participantCount').textContent = '0'; 
+                return; 
+            }
             const unique = new Set(bidders.map(b=>b.bidder_name));
             document.getElementById('participantCount').textContent = unique.size;
         }
 
-        document.getElementById('userNameInput').addEventListener('keypress', e => { if (e.key === 'Enter') joinAuction(); });
+        document.getElementById('userNameInput').addEventListener('keypress', e => { 
+            if (e.key === 'Enter') joinAuction(); 
+        });
     </script>
 </body>
 </html>
