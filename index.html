@@ -48,6 +48,33 @@
         .sold-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:none;justify-content:center;align-items:center;z-index:1000;flex-direction:column;gap:18px;backdrop-filter:blur(10px)}
         .sold-overlay.active{display:flex;animation:overlayFade .4s}
         @keyframes overlayFade{from{opacity:0}to{opacity:1}}
+        .auction-hammer {
+            font-size: 120px;
+            transform-origin: 80% 80%;
+            animation: hammerSmash 0.9s cubic-bezier(.2,.8,.3,1) forwards;
+        }
+        @keyframes hammerSmash {
+            0% {
+                transform: translateY(-120px) rotate(-45deg);
+                opacity: 0;
+            }
+            30% {
+                transform: translateY(-60px) rotate(-25deg);
+                opacity: 1;
+            }
+            55% {
+                transform: translateY(20px) rotate(0deg);
+            }
+            65% {
+                transform: translateY(0px) rotate(0deg);
+            }
+            75% {
+                transform: translateY(-8px) rotate(0deg);
+            }
+            100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+        }
         .sold-message{font-size:2.8rem;font-weight:700;background:linear-gradient(90deg,#fbbf24 0%,#f97316 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:celebration 1s ease-in-out}
         @keyframes celebration{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
         .sold-details{color:#a5f3fc;font-size:1.2rem}
@@ -59,19 +86,11 @@
 </head>
 <body>
     <div class="sold-overlay" id="soldOverlay">
-        <div style="font-size:120px;animation:hammerDrop 0.8s ease-out;">🔨</div>
+        <div class="auction-hammer">🔨</div>
         <div class="sold-message">SOLD! 🎉</div>
         <div class="sold-details" id="soldDetails">赢家: —</div>
         <div class="sold-details">⏳ 等待老师进入下一件房产...</div>
     </div>
-    <style>
-        @keyframes hammerDrop {
-            0% { transform: translateY(-100px) rotate(-45deg); opacity: 0; }
-            60% { transform: translateY(10px) rotate(0deg); opacity: 1; }
-            80% { transform: translateY(-5px) rotate(0deg); }
-            100% { transform: translateY(0) rotate(0deg); }
-        }
-    </style>
 
     <div class="container">
         <div class="header">
@@ -320,6 +339,14 @@
             el.classList.remove('active');
             void el.offsetWidth;
             el.classList.add('active');
+            
+            // ✅ 每次都重新播放锤子动画
+            const hammer = document.querySelector('.auction-hammer');
+            if (hammer) {
+                hammer.style.animation = 'none';
+                hammer.offsetHeight;
+                hammer.style.animation = '';
+            }
         }
 
         function hideSoldOverlay() { 
