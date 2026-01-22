@@ -59,19 +59,19 @@
 </head>
 <body>
     <div class="sold-overlay" id="soldOverlay">
-        <svg class="hammer-animation" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="width:120px;height:120px;">
-            <rect x="85" y="80" width="30" height="120" fill="#8B4513" rx="5"/>
-            <ellipse cx="100" cy="75" rx="40" ry="12" fill="#D4AF37"/>
-            <path d="M 60 50 Q 60 30 100 25 Q 140 30 140 50 L 140 75 Q 140 85 100 88 Q 60 85 60 75 Z" fill="#8B4513"/>
-            <ellipse cx="100" cy="50" rx="38" ry="15" fill="#D4AF37" opacity="0.8"/>
-            <ellipse cx="100" cy="45" rx="35" ry="10" fill="#FFD700" opacity="0.6"/>
-            <ellipse cx="100" cy="210" rx="45" ry="15" fill="#654321"/>
-            <ellipse cx="100" cy="205" rx="42" ry="12" fill="#8B4513"/>
-        </svg>
+        <div style="font-size:120px;animation:hammerDrop 0.8s ease-out;">🔨</div>
         <div class="sold-message">SOLD! 🎉</div>
         <div class="sold-details" id="soldDetails">赢家: —</div>
         <div class="sold-details">⏳ 等待老师进入下一件房产...</div>
     </div>
+    <style>
+        @keyframes hammerDrop {
+            0% { transform: translateY(-100px) rotate(-45deg); opacity: 0; }
+            60% { transform: translateY(10px) rotate(0deg); opacity: 1; }
+            80% { transform: translateY(-5px) rotate(0deg); }
+            100% { transform: translateY(0) rotate(0deg); }
+        }
+    </style>
 
     <div class="container">
         <div class="header">
