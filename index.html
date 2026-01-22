@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KL Property Auction Live - Student</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- ✅ 引入 Lottie 动画库 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg,#0f172a 0%,#1e3a8a 50%,#0f172a 100%); color:white; min-height:100vh;}
@@ -51,11 +49,74 @@
         .sold-overlay.active{display:flex;animation:overlayFade .4s}
         @keyframes overlayFade{from{opacity:0}to{opacity:1}}
         
-        /* ✅ 新的拍卖锤动画容器 */
-        .gavel-animation {
+        /* ✅ 简单的拍卖锤动画 */
+        .gavel-container {
+            position: relative;
             width: 200px;
             height: 200px;
             margin-bottom: 20px;
+        }
+        
+        .gavel {
+            font-size: 100px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            transform-origin: bottom center;
+        }
+        
+        .gavel.animate {
+            animation: gavelStrike 0.6s ease-out;
+        }
+        
+        @keyframes gavelStrike {
+            0% {
+                transform: translate(-50%, -50%) rotate(-45deg);
+            }
+            30% {
+                transform: translate(-50%, -30%) rotate(0deg);
+            }
+            40% {
+                transform: translate(-50%, -25%) rotate(5deg);
+            }
+            50% {
+                transform: translate(-50%, -30%) rotate(0deg);
+            }
+            60% {
+                transform: translate(-50%, -28%) rotate(2deg);
+            }
+            100% {
+                transform: translate(-50%, -30%) rotate(0deg);
+            }
+        }
+        
+        .sound-effect {
+            position: absolute;
+            top: 70%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            opacity: 0;
+        }
+        
+        .sound-effect.animate {
+            animation: soundBurst 0.6s ease-out;
+        }
+        
+        @keyframes soundBurst {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            30% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1.5);
+            }
         }
         
         .sold-message{font-size:2.8rem;font-weight:700;background:linear-gradient(90deg,#fbbf24 0%,#f97316 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:celebration 1s ease-in-out}
@@ -69,8 +130,11 @@
 </head>
 <body>
     <div class="sold-overlay" id="soldOverlay">
-        <!-- ✅ 使用 Lottie 动画 -->
-        <div id="gavelAnimation" class="gavel-animation"></div>
+        <!-- ✅ 简单的拍卖锤动画 -->
+        <div class="gavel-container">
+            <div class="gavel" id="gavel">🔨</div>
+            <div class="sound-effect" id="soundEffect">💥</div>
+        </div>
         
         <div class="sold-message">SOLD! 🎉</div>
         <div class="sold-details" id="soldDetails">赢家: —</div>
@@ -157,21 +221,6 @@
         let bidders = [];
         let soldAlreadyShown = false;
         let lastTeacherOpenNotified = null;
-        let gavelAnimationInstance = null;
-
-        // ✅ 初始化拍卖锤动画
-        function initGavelAnimation() {
-            if (gavelAnimationInstance) return;
-            
-            gavelAnimationInstance = lottie.loadAnimation({
-                container: document.getElementById('gavelAnimation'),
-                renderer: 'svg',
-                loop: false,
-                autoplay: false,
-                // ✅ 使用免费的拍卖锤动画（Lottie Files）
-                path: 'https://lottie.host/0eb8ab87-32ea-4f22-bfbf-89e7c66e2a50/O1vJmUxmIT.json'
-            });
-        }
 
         async function joinAuction() {
             const input = document.getElementById('userNameInput');
@@ -185,9 +234,6 @@
             document.getElementById('welcomeText').classList.remove('hidden');
             document.getElementById('displayName').textContent = userName;
             document.getElementById('mainContent').classList.remove('hidden');
-
-            // ✅ 初始化动画
-            initGavelAnimation();
 
             sb.channel('properties-changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => loadData())
@@ -334,17 +380,26 @@
         }
 
         function playGavelAnimation() {
-            if (gavelAnimationInstance) {
-                gavelAnimationInstance.goToAndStop(0, true);
-                gavelAnimationInstance.play();
-            }
+            const gavel = document.getElementById('gavel');
+            const sound = document.getElementById('soundEffect');
+            
+            // 重置动画
+            gavel.classList.remove('animate');
+            sound.classList.remove('animate');
+            
+            // 触发重排
+            void gavel.offsetWidth;
+            void sound.offsetWidth;
+            
+            // 播放动画
+            gavel.classList.add('animate');
+            sound.classList.add('animate');
         }
 
         function showSoldOverlay() {
             if (!currentPropertyObj) return;
             document.getElementById('soldDetails').textContent = `赢家: ${currentPropertyObj.highest_bidder || '无'} - RM ${Number(currentPropertyObj.current_price || 0).toLocaleString()}`;
             
-            // ✅ 播放拍卖锤动画
             playGavelAnimation();
             
             const el = document.getElementById('soldOverlay');
