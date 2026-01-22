@@ -55,16 +55,14 @@
         }
         /* 锤头敲击木座的主要动画 */
         #gavelHead {
-            transform-origin: 0px 80px;
-            animation: gavelStrike 0.8s cubic-bezier(.4,.1,.6,1) forwards;
+            transform-box: fill-box;
+            transform-origin: 50% 100%;
         }
         @keyframes gavelStrike {
-            0%   { transform: translate(100px, 60px) rotate(-35deg); }
-            30%  { transform: translate(100px, 60px) rotate(-10deg); }
-            50%  { transform: translate(100px, 90px) rotate(5deg); }
-            60%  { transform: translate(100px, 85px) rotate(-3deg); }
-            75%  { transform: translate(100px, 90px) rotate(3deg); }
-            100% { transform: translate(100px, 90px) rotate(0deg); }
+            0%   { transform: rotate(-35deg) translateY(-20px); }
+            40%  { transform: rotate(0deg) translateY(0); }
+            60%  { transform: rotate(5deg) translateY(5px); }
+            100% { transform: rotate(0deg) translateY(0); }
         }
         .sold-message{font-size:2.8rem;font-weight:700;background:linear-gradient(90deg,#fbbf24 0%,#f97316 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:celebration 1s ease-in-out}
         @keyframes celebration{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
@@ -87,9 +85,9 @@
                 <rect x="90" y="60" width="14" height="80" rx="7" fill="#8B5A2B"/>
 
                 <!-- 锤头组 -->
-                <g id="gavelHead" transform="translate(100,60)">
-                    <rect x="-60" y="-15" width="120" height="30" rx="8" fill="#A16207"/>
-                    <rect x="-55" y="15" width="110" height="10" rx="5" fill="#78350F"/>
+                <g id="gavelHead">
+                    <rect x="37" y="45" width="120" height="30" rx="8" fill="#A16207"/>
+                    <rect x="42" y="75" width="110" height="10" rx="5" fill="#78350F"/>
                 </g>
             </svg>
         </div>
@@ -340,11 +338,11 @@
 
         function playGavelAnimation() {
             const head = document.getElementById('gavelHead');
-            if (head) {
-                head.style.animation = 'none';
-                head.offsetHeight;
-                head.style.animation = '';
-            }
+            if (!head) return;
+
+            head.style.animation = 'none';
+            head.getBoundingClientRect();
+            head.style.animation = 'gavelStrike 0.8s ease-out forwards';
         }
 
         function showSoldOverlay() {
