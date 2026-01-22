@@ -49,74 +49,35 @@
         .sold-overlay.active{display:flex;animation:overlayFade .4s}
         @keyframes overlayFade{from{opacity:0}to{opacity:1}}
         
-        /* ✅ 简单的拍卖锤动画 */
+        /* ✅ 你的拍卖锤动画 */
         .gavel-container {
-            position: relative;
-            width: 200px;
-            height: 200px;
             margin-bottom: 20px;
         }
-        
         .gavel {
-            font-size: 100px;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            transform-origin: bottom center;
+            transform-origin: 120px 120px;
         }
-        
         .gavel.animate {
-            animation: gavelStrike 0.6s ease-out;
+            animation: hit 1.2s ease-in-out;
         }
-        
-        @keyframes gavelStrike {
-            0% {
-                transform: translate(-50%, -50%) rotate(-45deg);
-            }
-            30% {
-                transform: translate(-50%, -30%) rotate(0deg);
-            }
-            40% {
-                transform: translate(-50%, -25%) rotate(5deg);
-            }
-            50% {
-                transform: translate(-50%, -30%) rotate(0deg);
-            }
-            60% {
-                transform: translate(-50%, -28%) rotate(2deg);
-            }
-            100% {
-                transform: translate(-50%, -30%) rotate(0deg);
-            }
+        @keyframes hit {
+            0%   { transform: rotate(-30deg); }
+            40%  { transform: rotate(-30deg); }
+            55%  { transform: rotate(0deg); }
+            60%  { transform: rotate(5deg); }
+            70%  { transform: rotate(0deg); }
+            100% { transform: rotate(-30deg); }
         }
-        
-        .sound-effect {
-            position: absolute;
-            top: 70%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 40px;
+        .impact {
             opacity: 0;
         }
-        
-        .sound-effect.animate {
-            animation: soundBurst 0.6s ease-out;
+        .impact.animate {
+            animation: impact 1.2s;
         }
-        
-        @keyframes soundBurst {
-            0% {
-                opacity: 0;
-                transform: translate(-50%, -50%) scale(0.5);
-            }
-            30% {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1.2);
-            }
-            100% {
-                opacity: 0;
-                transform: translate(-50%, -50%) scale(1.5);
-            }
+        @keyframes impact {
+            0%, 50% { opacity: 0; transform: scale(0.8); }
+            60% { opacity: 1; transform: scale(1); }
+            80% { opacity: 0; transform: scale(1.3); }
+            100% { opacity: 0; }
         }
         
         .sold-message{font-size:2.8rem;font-weight:700;background:linear-gradient(90deg,#fbbf24 0%,#f97316 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:celebration 1s ease-in-out}
@@ -130,10 +91,21 @@
 </head>
 <body>
     <div class="sold-overlay" id="soldOverlay">
-        <!-- ✅ 简单的拍卖锤动画 -->
+        <!-- ✅ 你的拍卖锤 SVG -->
         <div class="gavel-container">
-            <div class="gavel" id="gavel">🔨</div>
-            <div class="sound-effect" id="soundEffect">💥</div>
+            <svg width="300" height="300" viewBox="0 0 300 300">
+                <!-- Impact circle -->
+                <circle id="impact" cx="180" cy="200" r="18" fill="#f5c16c" class="impact" />
+                <!-- Sound block -->
+                <rect x="140" y="210" width="80" height="20" rx="5" fill="#8b5a2b"/>
+                <!-- Gavel -->
+                <g id="gavel" class="gavel">
+                    <!-- Handle -->
+                    <rect x="60" y="130" width="140" height="16" rx="8" fill="#a66a3f"/>
+                    <!-- Head -->
+                    <rect x="40" y="110" width="50" height="50" rx="6" fill="#8b5a2b"/>
+                </g>
+            </svg>
         </div>
         
         <div class="sold-message">SOLD! 🎉</div>
@@ -381,19 +353,19 @@
 
         function playGavelAnimation() {
             const gavel = document.getElementById('gavel');
-            const sound = document.getElementById('soundEffect');
+            const impact = document.getElementById('impact');
             
-            // 重置动画
+            // 移除旧的动画类
             gavel.classList.remove('animate');
-            sound.classList.remove('animate');
+            impact.classList.remove('animate');
             
-            // 触发重排
+            // 强制重排
             void gavel.offsetWidth;
-            void sound.offsetWidth;
+            void impact.offsetWidth;
             
-            // 播放动画
+            // 添加新的动画类
             gavel.classList.add('animate');
-            sound.classList.add('animate');
+            impact.classList.add('animate');
         }
 
         function showSoldOverlay() {
