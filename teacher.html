@@ -78,6 +78,7 @@
         }
         .btn-success { background: linear-gradient(90deg, #10b981 0%, #059669 100%); }
         .btn-release { background: linear-gradient(90deg, #06b6d4 0%, #0891b2 100%); }
+        .btn-auto { background: linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%); }
         .status-display { 
             background: rgba(15, 23, 42, 0.6); 
             border: 1px solid rgba(249, 115, 22, 0.3); 
@@ -135,13 +136,23 @@
             border: 1px solid rgba(239, 68, 68, 0.2); 
             color: #fca5a5; 
         }
+        .auto-mode-indicator {
+            padding: 8px 12px;
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            border-radius: 6px;
+            color: #c4b5fd;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🔨 拍卖会控制面板</h1>
-            <p>⚙️ 教师控制：只有教师手动打开下一件，学生才会跳转</p>
+            <p>⚙️ 教师控制：支持手动控制或自動倒數模式</p>
         </div>
 
         <div id="messageBox" class="hidden"></div>
@@ -179,17 +190,28 @@
                 </div>
 
                 <button class="btn-success" onclick="resetCurrentProperty()">🔄 重置本房产</button>
-                <button onclick="markSoldOnly()">🏷️ 标为成交（仅标为 sold，不打开下一件）</button>
+                <button onclick="markSoldOnly()">🏷️ 標為成交</button>
             </div>
 
             <div class="control-card">
-                <h3>⚡ 快速操作</h3>
-                <button onclick="startCalling()">🔨 开始 Calling (1st)</button>
-                <button onclick="secondCalling()">🔨 进入 2nd Calling</button>
-                <button onclick="thirdCalling()">🔨 进入 3rd Calling</button>
-                <button onclick="forceSold()">✓ 强制成交（仅标为 sold）</button>
-                <button class="btn-release" onclick="releaseToNext()">🚀 Release Students (仅标记)</button>
-                <button class="btn-release" onclick="openNextProperty()">➡️ 手动打开下一件（老师专属）</button>
+                <h3>⚡ 手動操作</h3>
+                <button onclick="startCalling()">🔨 開始 Calling (1st)</button>
+                <button onclick="secondCalling()">🔨 進入 2nd Calling</button>
+                <button onclick="thirdCalling()">🔨 進入 3rd Calling</button>
+                <button onclick="forceSold()">✓ 強制成交</button>
+                <button class="btn-release" onclick="openNextProperty()">➡️ 手動打開下一件</button>
+            </div>
+
+            <div class="control-card">
+                <h3>🤖 自動倒數模式</h3>
+                <button class="btn-auto" onclick="startAutoMode()">▶️ 開始自動倒數 (1st → 2nd → 3rd → Sold)</button>
+                <button onclick="stopAutoMode()">⏹️ 停止自動模式</button>
+                <div id="autoModeStatus" class="hidden auto-mode-indicator">
+                    🟢 自動模式運行中...
+                </div>
+                <p style="color:#93c5fd;font-size:0.85rem;margin-top:8px;">
+                    1st: 10秒 → 2nd: 10秒 → 3rd: 5秒 → 自動成交
+                </p>
             </div>
 
             <div class="control-card">
@@ -225,6 +247,8 @@
 
         let selectedProperty = 1;
         let allProperties = {};
+        let autoModeInterval = null;
+        let lastUpdateTime = Date.now();
 
         const openingBids = {1:500000,2:350000,3:650000,4:400000};
 
@@ -260,7 +284,6 @@
             try {
                 const openingBid = openingBids[selectedProperty];
                 
-                // ✅ 修复：先删除 bidders，再更新 properties
                 const { error: deleteError } = await sb.from('bidders').delete().eq('property_id', selectedProperty);
                 if (deleteError) {
                     console.error('删除竞价记录错误:', deleteError);
@@ -299,70 +322,56 @@
             try {
                 const now = new Date().toISOString();
                 await sb.from('properties').update({ status: 'sold', stage: 0, timer: 0, release_next: false, sold_at: now }).eq('id', selectedProperty);
-                showMessage('✓ 已将当前房产标为 sold（未打开下一件）');
+                showMessage('✓ 已將當前房產標為 sold');
                 await loadData();
             } catch (err) {
-                console.error('标为 sold 错误:', err);
-                showMessage('❌ 失败: ' + err.message, true);
+                console.error('標為 sold 錯誤:', err);
+                showMessage('❌ 失敗: ' + err.message, true);
             }
         }
 
         async function startCalling() {
             try {
                 await sb.from('properties').update({ stage: 1, timer: 10 }).eq('id', selectedProperty);
-                showMessage('✓ 开始 1st Calling');
+                showMessage('✓ 開始 1st Calling');
                 await loadData();
-            } catch (err) { showMessage('❌ 失败: ' + err.message, true); }
+            } catch (err) { showMessage('❌ 失敗: ' + err.message, true); }
         }
+
         async function secondCalling() {
             try {
                 await sb.from('properties').update({ stage: 2, timer: 10 }).eq('id', selectedProperty);
-                showMessage('✓ 进入 2nd Calling'); await loadData();
-            } catch (err) { showMessage('❌ 失败: ' + err.message, true); }
+                showMessage('✓ 進入 2nd Calling'); 
+                await loadData();
+            } catch (err) { showMessage('❌ 失敗: ' + err.message, true); }
         }
+
         async function thirdCalling() {
             try {
                 await sb.from('properties').update({ stage: 3, timer: 5 }).eq('id', selectedProperty);
-                showMessage('✓ 进入 3rd Calling'); await loadData();
-            } catch (err) { showMessage('❌ 失败: ' + err.message, true); }
+                showMessage('✓ 進入 3rd Calling'); 
+                await loadData();
+            } catch (err) { showMessage('❌ 失敗: ' + err.message, true); }
         }
 
         async function forceSold() {
             try {
                 const now = new Date().toISOString();
                 await sb.from('properties').update({ status: 'sold', stage: 0, timer: 0, release_next: false, sold_at: now }).eq('id', selectedProperty);
-                showMessage('✓ 已强制成交（停留在已成交页面）');
+                showMessage('✓ 已強制成交');
                 await loadData();
-            } catch (err) { console.error(err); showMessage('❌ 失败: ' + err.message, true); }
-        }
-
-        async function releaseToNext() {
-            try {
-                const now = new Date().toISOString();
-                await sb.from('properties').update({ release_next: true, release_by: 'teacher', release_at: now }).eq('id', selectedProperty);
-
-                setTimeout(async () => {
-                    try { await sb.from('properties').update({ release_next: false, release_by: null, release_at: null }).eq('id', selectedProperty); }
-                    catch (e) { console.error('release cleanup failed', e); }
-                }, 1500);
-
-                showMessage('✓ 已 release students（未自动打开下一件）');
-                await loadData();
-            } catch (err) { console.error(err); showMessage('❌ 失败: ' + err.message, true); }
+            } catch (err) { console.error(err); showMessage('❌ 失敗: ' + err.message, true); }
         }
 
         async function openNextProperty() {
             try {
                 const nextId = selectedProperty + 1;
                 if (!allProperties[nextId]) {
-                    showMessage('❌ 沒有下一件房产', true);
+                    showMessage('❌ 沒有下一件房産', true);
                     return;
                 }
                 
-                await sb.from('properties')
-                    .update({ opened_by_teacher: false })
-                    .neq('id', nextId);
-
+                await sb.from('properties').update({ opened_by_teacher: false }).neq('id', nextId);
                 await sb.from('properties').update({
                     status: 'open',
                     stage: 0,
@@ -376,12 +385,79 @@
                     catch(e){ console.error('cleanup opened_by_teacher failed', e); }
                 }, 1500);
 
-                showMessage(`✓ 已打开房产 ${nextId}`);
+                showMessage(`✓ 已打開房産 ${nextId}`);
+                selectedProperty = nextId;
+                document.getElementById('propertySelect').value = String(nextId);
                 await loadData();
             } catch (err) { 
                 console.error(err); 
-                showMessage('❌ 失败: ' + err.message, true); 
+                showMessage('❌ 失敗: ' + err.message, true); 
             }
+        }
+
+        // ✅ 自動倒數模式
+        async function startAutoMode() {
+            const prop = allProperties[selectedProperty];
+            if (!prop) return;
+
+            if (prop.status === 'sold') {
+                showMessage('❌ 此房産已成交，無法啟動自動模式', true);
+                return;
+            }
+
+            stopAutoMode();
+            
+            document.getElementById('autoModeStatus').classList.remove('hidden');
+            showMessage('✓ 自動倒數模式已啟動');
+
+            await sb.from('properties').update({ stage: 1, timer: 10 }).eq('id', selectedProperty);
+            await loadData();
+
+            autoModeInterval = setInterval(async () => {
+                try {
+                    const { data } = await sb.from('properties').select('*').eq('id', selectedProperty).single();
+                    if (!data) return;
+
+                    if (data.status === 'sold') {
+                        stopAutoMode();
+                        return;
+                    }
+
+                    if (data.timer > 0) {
+                        await sb.from('properties').update({ timer: data.timer - 1 }).eq('id', selectedProperty);
+                    } else {
+                        if (data.stage === 1) {
+                            await sb.from('properties').update({ stage: 2, timer: 10 }).eq('id', selectedProperty);
+                            showMessage('⏩ 自動進入 2nd Calling');
+                        } else if (data.stage === 2) {
+                            await sb.from('properties').update({ stage: 3, timer: 5 }).eq('id', selectedProperty);
+                            showMessage('⏩ 自動進入 3rd Calling');
+                        } else if (data.stage === 3) {
+                            const now = new Date().toISOString();
+                            await sb.from('properties').update({ 
+                                status: 'sold', 
+                                stage: 0, 
+                                timer: 0, 
+                                sold_at: now 
+                            }).eq('id', selectedProperty);
+                            showMessage('🎉 自動成交！');
+                            stopAutoMode();
+                        }
+                    }
+
+                    await loadData();
+                } catch (err) {
+                    console.error('自動模式錯誤:', err);
+                }
+            }, 1000);
+        }
+
+        function stopAutoMode() {
+            if (autoModeInterval) {
+                clearInterval(autoModeInterval);
+                autoModeInterval = null;
+            }
+            document.getElementById('autoModeStatus').classList.add('hidden');
         }
 
         function updateDisplay() {
@@ -389,10 +465,10 @@
             if (!prop) return;
 
             document.getElementById('propertySelect').value = String(selectedProperty);
-            document.getElementById('currentStatus').textContent = prop.status === 'open' ? '进行中' : '已成交';
+            document.getElementById('currentStatus').textContent = prop.status === 'open' ? '進行中' : '已成交';
             document.getElementById('currentBid').textContent = `RM ${Number(prop.current_price || 0).toLocaleString()}`;
             document.getElementById('currentBidder').textContent = prop.highest_bidder || '等待中...';
-            document.getElementById('currentStage').textContent = prop.stage === 0 ? '未开始' : `${prop.stage} (${prop.timer}s)`;
+            document.getElementById('currentStage').textContent = prop.stage === 0 ? '未開始' : `${prop.stage} (${prop.timer}s)`;
 
             renderAllProperties();
             loadBidderStats();
@@ -409,12 +485,15 @@
                 const { data: allProps } = await sb.from('properties').select('*');
                 const soldCount = (allProps || []).filter(p => p.status === 'sold').length;
                 document.getElementById('soldCount').textContent = soldCount;
-            } catch (err) { console.error('统计错误:', err); }
+            } catch (err) { console.error('統計錯誤:', err); }
         }
 
         function renderAllProperties() {
             const list = document.getElementById('propertiesList');
-            if (!allProperties || Object.keys(allProperties).length === 0) { list.innerHTML = '<div style="color: #fca5a5;">❌ 没有房产数据</div>'; return; }
+            if (!allProperties || Object.keys(allProperties).length === 0) { 
+                list.innerHTML = '<div style="color: #fca5a5;">❌ 没有房产数据</div>'; 
+                return; 
+            }
 
             list.innerHTML = Object.entries(allProperties)
                 .sort((a,b)=> parseInt(a[0]) - parseInt(b[0]))
@@ -424,9 +503,9 @@
                     <div>RM ${Number(prop.current_price || 0).toLocaleString()}</div>
                     <div style="color:#a5f3fc;">${prop.highest_bidder || '等待中...'}</div>
                     <div class="property-status ${prop.status === 'open' ? 'status-open' : 'status-sold'}">
-                        ${prop.status === 'open' ? '进行中' : '已成交'}
+                        ${prop.status === 'open' ? '進行中' : '已成交'}
                     </div>
-                    <div>${prop.stage > 0 ? `${prop.stage}阶段` : '-'}</div>
+                    <div>${prop.stage > 0 ? `${prop.stage}階段 (${prop.timer}s)` : '-'}</div>
                 </div>
             `).join('');
         }
