@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KL Property Auction Live - Student</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- ✅ 引入 Lottie 动画库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg,#0f172a 0%,#1e3a8a 50%,#0f172a 100%); color:white; min-height:100vh;}
@@ -48,34 +50,14 @@
         .sold-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:none;justify-content:center;align-items:center;z-index:1000;flex-direction:column;gap:18px;backdrop-filter:blur(10px)}
         .sold-overlay.active{display:flex;animation:overlayFade .4s}
         @keyframes overlayFade{from{opacity:0}to{opacity:1}}
-        .auction-hammer-container {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 10px;
+        
+        /* ✅ 新的拍卖锤动画容器 */
+        .gavel-animation {
+            width: 200px;
+            height: 200px;
+            margin-bottom: 20px;
         }
-        /* ✅ 修复：锤子动画 - 只用旋转，不用位移 */
-        #gavelHead {
-            transform-box: fill-box;
-            transform-origin: 50% 75%;
-        }
-        @keyframes gavelStrike {
-            0% {
-                transform: rotate(-45deg);
-                opacity: 1;
-            }
-            40% {
-                transform: rotate(0deg);
-            }
-            55% {
-                transform: rotate(5deg);
-            }
-            70% {
-                transform: rotate(-2deg);
-            }
-            100% {
-                transform: rotate(0deg);
-            }
-        }
+        
         .sold-message{font-size:2.8rem;font-weight:700;background:linear-gradient(90deg,#fbbf24 0%,#f97316 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:celebration 1s ease-in-out}
         @keyframes celebration{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
         .sold-details{color:#a5f3fc;font-size:1.2rem}
@@ -87,23 +69,9 @@
 </head>
 <body>
     <div class="sold-overlay" id="soldOverlay">
-        <div class="auction-hammer-container">
-            <svg id="gavelSvg" width="220" height="220" viewBox="0 0 200 200">
-                <!-- 木座（固定不動）-->
-                <rect x="30" y="150" width="140" height="15" rx="6" fill="#8B5A2B"/>
-                <rect x="40" y="165" width="120" height="8" rx="4" fill="#6B3E1A"/>
-
-                <!-- 整個錘子組（錘頭+手柄一起動）-->
-                <g id="gavelHead">
-                    <!-- 手柄 -->
-                    <rect x="90" y="20" width="14" height="100" rx="7" fill="#8B5A2B"/>
-                    
-                    <!-- 锤头 -->
-                    <rect x="37" y="5" width="120" height="30" rx="8" fill="#A16207"/>
-                    <rect x="42" y="35" width="110" height="10" rx="5" fill="#78350F"/>
-                </g>
-            </svg>
-        </div>
+        <!-- ✅ 使用 Lottie 动画 -->
+        <div id="gavelAnimation" class="gavel-animation"></div>
+        
         <div class="sold-message">SOLD! 🎉</div>
         <div class="sold-details" id="soldDetails">赢家: —</div>
         <div class="sold-details">⏳ 等待老师进入下一件房产...</div>
@@ -189,6 +157,21 @@
         let bidders = [];
         let soldAlreadyShown = false;
         let lastTeacherOpenNotified = null;
+        let gavelAnimationInstance = null;
+
+        // ✅ 初始化拍卖锤动画
+        function initGavelAnimation() {
+            if (gavelAnimationInstance) return;
+            
+            gavelAnimationInstance = lottie.loadAnimation({
+                container: document.getElementById('gavelAnimation'),
+                renderer: 'svg',
+                loop: false,
+                autoplay: false,
+                // ✅ 使用免费的拍卖锤动画（Lottie Files）
+                path: 'https://lottie.host/0eb8ab87-32ea-4f22-bfbf-89e7c66e2a50/O1vJmUxmIT.json'
+            });
+        }
 
         async function joinAuction() {
             const input = document.getElementById('userNameInput');
@@ -202,6 +185,9 @@
             document.getElementById('welcomeText').classList.remove('hidden');
             document.getElementById('displayName').textContent = userName;
             document.getElementById('mainContent').classList.remove('hidden');
+
+            // ✅ 初始化动画
+            initGavelAnimation();
 
             sb.channel('properties-changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => loadData())
@@ -250,7 +236,6 @@
                     currentPropertyObj = found;
                 }
 
-                // ✅ 修復：只使用 id 排序（不依賴 created_at）
                 const { data: biddersData, error: biddersError } = await sb
                     .from('bidders')
                     .select('*')
@@ -310,7 +295,6 @@
                     return;
                 }
 
-                // ✅ 修復：移除 created_at，讓 Supabase 自動處理
                 const { error: insertError } = await sb
                     .from('bidders')
                     .insert({ 
@@ -350,18 +334,17 @@
         }
 
         function playGavelAnimation() {
-            const head = document.getElementById('gavelHead');
-            if (!head) return;
-
-            head.style.animation = 'none';
-            head.getBoundingClientRect();
-            head.style.animation = 'gavelStrike 0.8s ease-out forwards';
+            if (gavelAnimationInstance) {
+                gavelAnimationInstance.goToAndStop(0, true);
+                gavelAnimationInstance.play();
+            }
         }
 
         function showSoldOverlay() {
             if (!currentPropertyObj) return;
             document.getElementById('soldDetails').textContent = `赢家: ${currentPropertyObj.highest_bidder || '无'} - RM ${Number(currentPropertyObj.current_price || 0).toLocaleString()}`;
             
+            // ✅ 播放拍卖锤动画
             playGavelAnimation();
             
             const el = document.getElementById('soldOverlay');
