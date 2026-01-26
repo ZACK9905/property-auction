@@ -76,7 +76,13 @@
             transform: translateY(-2px); 
             box-shadow: 0 0 20px rgba(249, 115, 22, 0.4); 
         }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
         .btn-success { background: linear-gradient(90deg, #10b981 0%, #059669 100%); }
+        .btn-start { background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%); font-size: 1.1rem; padding: 14px 24px; }
         .btn-release { background: linear-gradient(90deg, #06b6d4 0%, #0891b2 100%); }
         .btn-auto { background: linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%); }
         .status-display { 
@@ -146,13 +152,22 @@
             display: inline-block;
             margin-top: 8px;
         }
+        .silent-countdown-indicator {
+            padding: 8px 12px;
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            border-radius: 6px;
+            color: #86efac;
+            font-weight: 600;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🔨 拍卖会控制面板</h1>
-            <p>⚙️ 教师控制：支持手动控制或自動倒數模式</p>
+            <p>⚙️ 教师控制：按 START 开启竞标 + 自动倒数</p>
         </div>
 
         <div id="messageBox" class="hidden"></div>
@@ -176,6 +191,10 @@
                         <span class="status-value" id="currentStatus">加载中...</span>
                     </div>
                     <div class="status-row">
+                        <span class="status-label">竞标状态:</span>
+                        <span class="status-value" id="biddingStatus">未开始</span>
+                    </div>
+                    <div class="status-row">
                         <span class="status-label">当前出价:</span>
                         <span class="status-value" id="currentBid">-</span>
                     </div>
@@ -187,6 +206,12 @@
                         <span class="status-label">Calling 阶段:</span>
                         <span class="status-value" id="currentStage">-</span>
                     </div>
+                </div>
+
+                <!-- ✅ 新增 START 按钮 -->
+                <button id="startBiddingBtn" class="btn-start" onclick="startBidding()">🟢 START 竞标</button>
+                <div id="silentCountdownIndicator" class="silent-countdown-indicator hidden">
+                    ⏱️ 静默倒数: <span id="silentCountdownDisplay">10</span> 秒
                 </div>
 
                 <button class="btn-success" onclick="resetCurrentProperty()">🔄 重置本房产</button>
@@ -203,14 +228,14 @@
             </div>
 
             <div class="control-card">
-                <h3>🤖 自動倒數模式</h3>
-                <button class="btn-auto" onclick="startAutoMode()">▶️ 開始自動倒數 (1st → 2nd → 3rd → Sold)</button>
+                <h3>🤖 完整自動模式</h3>
+                <button class="btn-auto" onclick="startFullAutoMode()">▶️ 完整自動 (START → 靜默 → 1st → 2nd → 3rd → Sold)</button>
                 <button onclick="stopAutoMode()">⏹️ 停止自動模式</button>
                 <div id="autoModeStatus" class="hidden auto-mode-indicator">
                     🟢 自動模式運行中...
                 </div>
                 <p style="color:#93c5fd;font-size:0.85rem;margin-top:8px;">
-                    1st: 10秒 → 2nd: 10秒 → 3rd: 5秒 → 自動成交
+                    靜默10秒 → 1st:10秒 → 2nd:10秒 → 3rd:5秒 → 自動成交
                 </p>
             </div>
 
@@ -248,7 +273,6 @@
         let selectedProperty = 1;
         let allProperties = {};
         let autoModeInterval = null;
-        let lastUpdateTime = Date.now();
 
         const openingBids = {1:500000,2:350000,3:650000,4:400000};
 
@@ -297,6 +321,8 @@
                     stage: 0,
                     timer: 0,
                     status: 'open',
+                    bidding_started: false,
+                    silent_countdown: 0,
                     release_next: false,
                     release_by: null,
                     release_at: null,
@@ -318,6 +344,22 @@
             }
         }
 
+        // ✅ 新功能：START 竞标
+        async function startBidding() {
+            try {
+                await sb.from('properties').update({ 
+                    bidding_started: true,
+                    silent_countdown: 10
+                }).eq('id', selectedProperty);
+                
+                showMessage('✓ 竞标已开始！静默倒数 10 秒...');
+                await loadData();
+            } catch (err) {
+                console.error('开始竞标错误:', err);
+                showMessage('❌ 失败: ' + err.message, true);
+            }
+        }
+
         async function markSoldOnly() {
             try {
                 const now = new Date().toISOString();
@@ -332,7 +374,7 @@
 
         async function startCalling() {
             try {
-                await sb.from('properties').update({ stage: 1, timer: 10 }).eq('id', selectedProperty);
+                await sb.from('properties').update({ stage: 1, timer: 10, bidding_started: true }).eq('id', selectedProperty);
                 showMessage('✓ 開始 1st Calling');
                 await loadData();
             } catch (err) { showMessage('❌ 失敗: ' + err.message, true); }
@@ -376,6 +418,8 @@
                     status: 'open',
                     stage: 0,
                     timer: 0,
+                    bidding_started: false,
+                    silent_countdown: 0,
                     opened_by_teacher: true,
                     opened_by_teacher_at: new Date().toISOString()
                 }).eq('id', nextId);
@@ -395,8 +439,8 @@
             }
         }
 
-        // ✅ 自動倒數模式
-        async function startAutoMode() {
+        // ✅ 完整自动模式（包含 START）
+        async function startFullAutoMode() {
             const prop = allProperties[selectedProperty];
             if (!prop) return;
 
@@ -408,9 +452,13 @@
             stopAutoMode();
             
             document.getElementById('autoModeStatus').classList.remove('hidden');
-            showMessage('✓ 自動倒數模式已啟動');
+            showMessage('✓ 完整自動模式已啟動');
 
-            await sb.from('properties').update({ stage: 1, timer: 10 }).eq('id', selectedProperty);
+            // 先 START
+            await sb.from('properties').update({ 
+                bidding_started: true,
+                silent_countdown: 10
+            }).eq('id', selectedProperty);
             await loadData();
 
             autoModeInterval = setInterval(async () => {
@@ -423,25 +471,42 @@
                         return;
                     }
 
-                    if (data.timer > 0) {
-                        await sb.from('properties').update({ timer: data.timer - 1 }).eq('id', selectedProperty);
-                    } else {
-                        if (data.stage === 1) {
-                            await sb.from('properties').update({ stage: 2, timer: 10 }).eq('id', selectedProperty);
-                            showMessage('⏩ 自動進入 2nd Calling');
-                        } else if (data.stage === 2) {
-                            await sb.from('properties').update({ stage: 3, timer: 5 }).eq('id', selectedProperty);
-                            showMessage('⏩ 自動進入 3rd Calling');
-                        } else if (data.stage === 3) {
-                            const now = new Date().toISOString();
+                    // 处理静默倒数
+                    if (data.silent_countdown > 0) {
+                        await sb.from('properties').update({ 
+                            silent_countdown: data.silent_countdown - 1 
+                        }).eq('id', selectedProperty);
+                        
+                        if (data.silent_countdown - 1 === 0) {
                             await sb.from('properties').update({ 
-                                status: 'sold', 
-                                stage: 0, 
-                                timer: 0, 
-                                sold_at: now 
+                                stage: 1, 
+                                timer: 10 
                             }).eq('id', selectedProperty);
-                            showMessage('🎉 自動成交！');
-                            stopAutoMode();
+                            showMessage('⏩ 靜默倒數結束，進入 1st Calling');
+                        }
+                    }
+                    // 处理 Calling 阶段
+                    else if (data.stage > 0) {
+                        if (data.timer > 0) {
+                            await sb.from('properties').update({ timer: data.timer - 1 }).eq('id', selectedProperty);
+                        } else {
+                            if (data.stage === 1) {
+                                await sb.from('properties').update({ stage: 2, timer: 10 }).eq('id', selectedProperty);
+                                showMessage('⏩ 自動進入 2nd Calling');
+                            } else if (data.stage === 2) {
+                                await sb.from('properties').update({ stage: 3, timer: 5 }).eq('id', selectedProperty);
+                                showMessage('⏩ 自動進入 3rd Calling');
+                            } else if (data.stage === 3) {
+                                const now = new Date().toISOString();
+                                await sb.from('properties').update({ 
+                                    status: 'sold', 
+                                    stage: 0, 
+                                    timer: 0, 
+                                    sold_at: now 
+                                }).eq('id', selectedProperty);
+                                showMessage('🎉 自動成交！');
+                                stopAutoMode();
+                            }
                         }
                     }
 
@@ -466,6 +531,35 @@
 
             document.getElementById('propertySelect').value = String(selectedProperty);
             document.getElementById('currentStatus').textContent = prop.status === 'open' ? '進行中' : '已成交';
+            
+            // ✅ 显示竞标状态
+            const biddingStatusEl = document.getElementById('biddingStatus');
+            const startBtn = document.getElementById('startBiddingBtn');
+            const silentIndicator = document.getElementById('silentCountdownIndicator');
+            const silentDisplay = document.getElementById('silentCountdownDisplay');
+            
+            if (prop.status === 'sold') {
+                biddingStatusEl.textContent = '已結束';
+                startBtn.disabled = true;
+                silentIndicator.classList.add('hidden');
+            } else if (prop.bidding_started) {
+                biddingStatusEl.textContent = '✅ 已開始';
+                biddingStatusEl.style.color = '#86efac';
+                startBtn.disabled = true;
+                
+                if (prop.silent_countdown > 0) {
+                    silentIndicator.classList.remove('hidden');
+                    silentDisplay.textContent = prop.silent_countdown;
+                } else {
+                    silentIndicator.classList.add('hidden');
+                }
+            } else {
+                biddingStatusEl.textContent = '⏳ 未開始';
+                biddingStatusEl.style.color = '#fbbf24';
+                startBtn.disabled = false;
+                silentIndicator.classList.add('hidden');
+            }
+
             document.getElementById('currentBid').textContent = `RM ${Number(prop.current_price || 0).toLocaleString()}`;
             document.getElementById('currentBidder').textContent = prop.highest_bidder || '等待中...';
             document.getElementById('currentStage').textContent = prop.stage === 0 ? '未開始' : `${prop.stage} (${prop.timer}s)`;
@@ -499,13 +593,13 @@
                 .sort((a,b)=> parseInt(a[0]) - parseInt(b[0]))
                 .map(([id, prop]) => `
                 <div class="property-row">
-                    <div class="property-name">房产 ${id}</div>
+                    <div class="property-name">房产 ${id} ${prop.bidding_started ? '✅' : '⏳'}</div>
                     <div>RM ${Number(prop.current_price || 0).toLocaleString()}</div>
                     <div style="color:#a5f3fc;">${prop.highest_bidder || '等待中...'}</div>
                     <div class="property-status ${prop.status === 'open' ? 'status-open' : 'status-sold'}">
                         ${prop.status === 'open' ? '進行中' : '已成交'}
                     </div>
-                    <div>${prop.stage > 0 ? `${prop.stage}階段 (${prop.timer}s)` : '-'}</div>
+                    <div>${prop.silent_countdown > 0 ? `靜默${prop.silent_countdown}s` : prop.stage > 0 ? `${prop.stage}階段 (${prop.timer}s)` : '-'}</div>
                 </div>
             `).join('');
         }
