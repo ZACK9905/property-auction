@@ -277,9 +277,16 @@ async function placeBid(inc){
     try {
         const bid = Number(currentPropertyObj.current_price||0) + inc;
         
+        // ✅ 方案 A：每次出价自动重置到 1st Calling
         const { error: updateError } = await sb
             .from('properties')
-            .update({current_price:bid, highest_bidder:userName})
+            .update({
+                current_price: bid, 
+                highest_bidder: userName,
+                stage: 1,           // ← 重置到 1st Calling
+                timer: 10,          // ← 重置倒数 10 秒
+                silent_countdown: 0 // ← 清除静默倒数
+            })
             .eq('id', currentPropertyObj.id);
 
         if (updateError) {
