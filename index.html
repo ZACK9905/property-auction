@@ -34,14 +34,38 @@
         .calling-text.third{color:#ef4444}
         .calling-timer{font-family:'Courier New',monospace;font-size:2.2rem;color:#a5f3fc;text-align:center}
         .bid-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-        .bid-btn{padding:12px;border-radius:8px;background:linear-gradient(135deg,#06b6d4 0%,#0891b2 100%);color:white;border:none;font-weight:600;cursor:pointer}
-        .bid-btn:hover{transform:scale(1.03)}
+        .bid-btn{padding:12px;border-radius:8px;background:linear-gradient(135deg,#06b6d4 0%,#0891b2 100%);color:white;border:none;font-weight:600;cursor:pointer;transition:all 0.2s;}
+        .bid-btn:hover:not(:disabled){transform:scale(1.03)}
+        .bid-btn:disabled{
+            opacity:0.4;
+            cursor:not-allowed;
+            background:linear-gradient(135deg,#64748b 0%,#475569 100%);
+        }
         .bidders-list{background:linear-gradient(135deg,rgba(30,58,138,0.35),rgba(30,99,145,0.35));padding:16px;border-radius:12px;max-height:640px;overflow:auto;border:1px solid rgba(34,211,238,0.2)}
         .bidder-item{display:flex;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:8px;background:rgba(15,23,42,0.6);border:1px solid rgba(59,130,246,0.15)}
         .sold-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:none;justify-content:center;align-items:center;z-index:1000;flex-direction:column;gap:18px}
         .sold-overlay.active{display:flex}
         
-        /* ✅ GIF 容器 */
+        /* ✅ 等待提示 */
+        .waiting-notice {
+            background:rgba(251,191,36,0.15);
+            border:2px solid rgba(251,191,36,0.4);
+            padding:16px;
+            border-radius:10px;
+            margin:16px 0;
+            text-align:center;
+            animation:pulse-glow 2s infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 10px rgba(251,191,36,0.3); }
+            50% { box-shadow: 0 0 20px rgba(251,191,36,0.6); }
+        }
+        .waiting-notice-text {
+            color:#fbbf24;
+            font-size:1.1rem;
+            font-weight:600;
+        }
+
         .gavel-container {
             margin-bottom: 20px;
         }
@@ -102,6 +126,11 @@
                     <div class="bidder-name" id="highBidder">等待中...</div>
                 </div>
 
+                <!-- ✅ 等待提示 -->
+                <div id="waitingNotice" class="waiting-notice hidden">
+                    <div class="waiting-notice-text">⏳ 等待老师开始竞标...</div>
+                </div>
+
                 <div id="callingStatusDiv" class="calling-status hidden">
                     <div class="calling-text" id="callingText">1st Calling</div>
                     <div class="calling-timer" id="callingTimer">10</div>
@@ -110,10 +139,10 @@
                 <div style="font-size:0.9rem;color:#93c5fd;margin:10px 0">下一个出价至少: <strong id="minBidDisplay" style="color:#06b6d4">RM 505,000</strong></div>
 
                 <div class="bid-buttons">
-                    <button class="bid-btn" onclick="placeBid(5000)">+RM 5,000</button>
-                    <button class="bid-btn" onclick="placeBid(10000)">+RM 10,000</button>
-                    <button class="bid-btn" onclick="placeBid(15000)">+RM 15,000</button>
-                    <button class="bid-btn" onclick="placeBid(25000)">+RM 25,000</button>
+                    <button class="bid-btn" id="bidBtn1" onclick="placeBid(5000)">+RM 5,000</button>
+                    <button class="bid-btn" id="bidBtn2" onclick="placeBid(10000)">+RM 10,000</button>
+                    <button class="bid-btn" id="bidBtn3" onclick="placeBid(15000)">+RM 15,000</button>
+                    <button class="bid-btn" id="bidBtn4" onclick="placeBid(25000)">+RM 25,000</button>
                 </div>
 
                 <div id="messageBox" class="message-box hidden"></div>
@@ -156,7 +185,6 @@ async function joinAuction(){
     document.getElementById('displayName').textContent = userName;
     document.getElementById('mainContent').classList.remove('hidden');
 
-    // ✅ 订阅实时更新
     sb.channel('properties-changes')
       .on('postgres_changes',{event:'*',schema:'public',table:'properties'}, () => loadData())
       .subscribe();
@@ -182,7 +210,6 @@ async function loadData(){
 
         if (!allProps || allProps.length === 0) return;
 
-        // ✅ 检查老师是否打开了新房产
         const teacherOpened = allProps
             .filter(p => p.opened_by_teacher === true)
             .sort((a, b) => b.id - a.id)[0];
@@ -204,7 +231,6 @@ async function loadData(){
             currentPropertyObj = found;
         }
 
-        // ✅ 加载竞价记录
         const { data: biddersData, error: biddersError } = await sb
             .from('bidders')
             .select('*')
@@ -220,7 +246,6 @@ async function loadData(){
 
         updateUI();
 
-        // ✅ 检查是否已成交
         if (currentPropertyObj && currentPropertyObj.status === 'sold') {
             if (!soldAlreadyShown) { 
                 showSoldOverlay(); 
@@ -237,6 +262,13 @@ async function loadData(){
 
 async function placeBid(inc){
     if (!currentPropertyObj) return;
+    
+    // ✅ 检查是否已开始竞标
+    if (!currentPropertyObj.bidding_started) {
+        showMessage('❌ 竞标尚未开始，请等待老师');
+        return;
+    }
+    
     if (currentPropertyObj.status === 'sold') {
         showMessage('❌ 此房产已成交');
         return;
@@ -276,20 +308,15 @@ async function placeBid(inc){
     }
 }
 
-/* ✅ GIF 动画播放 */
 function playGavelAnimation(){
     const container = document.getElementById('gavelContainer');
     container.innerHTML = '';
     const img = document.createElement('img');
-    
-    // ✅ 使用 GitHub raw 链接
     img.src = 'https://raw.githubusercontent.com/ZACK9905/property-auction/main/gavel.gif';
-    
     img.onerror = function() {
-        console.error('❌ GIF 加载失败，请检查路径');
+        console.error('❌ GIF 加载失败');
         container.innerHTML = '<div style="font-size:100px">🔨</div>';
     };
-    
     container.appendChild(img);
 }
 
@@ -332,6 +359,29 @@ function updateDisplay() {
     document.getElementById('minBidDisplay').textContent = `RM ${minBid.toLocaleString()}`;
     document.getElementById('propertyInfo').textContent = `正在竞拍房产 ${currentProperty}/4`;
 
+    // ✅ 控制按钮和提示的显示
+    const waitingNotice = document.getElementById('waitingNotice');
+    const bidButtons = [
+        document.getElementById('bidBtn1'),
+        document.getElementById('bidBtn2'),
+        document.getElementById('bidBtn3'),
+        document.getElementById('bidBtn4')
+    ];
+
+    // 判断是否可以竞标
+    const canBid = currentPropertyObj.bidding_started && currentPropertyObj.status !== 'sold';
+    
+    if (!currentPropertyObj.bidding_started && currentPropertyObj.status === 'open') {
+        // 显示等待提示
+        waitingNotice.classList.remove('hidden');
+        bidButtons.forEach(btn => btn.disabled = true);
+    } else {
+        // 隐藏等待提示
+        waitingNotice.classList.add('hidden');
+        bidButtons.forEach(btn => btn.disabled = !canBid);
+    }
+
+    // Calling 状态显示
     const callingDiv = document.getElementById('callingStatusDiv');
     if (currentPropertyObj.stage > 0) {
         callingDiv.classList.remove('hidden');
