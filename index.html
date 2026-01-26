@@ -13,40 +13,54 @@
         .header h1{font-size:2.2rem;background:linear-gradient(90deg,#a5f3fc 0%,#60a5fa 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px;}
         .input-group{display:flex;gap:10px;max-width:400px;}
         input{flex:1;padding:12px;border-radius:8px;background:rgba(30,58,138,0.5);border:1px solid rgba(34,211,238,0.3);color:white}
+        input::placeholder{color:rgba(255,255,255,0.5)}
         button{padding:10px 16px;border-radius:8px;border:none;background:linear-gradient(90deg,#06b6d4 0%,#3b82f6 100%);color:white;cursor:pointer;}
         .main-content{display:grid;grid-template-columns:1fr 350px;gap:20px}
         .auction-card{background:linear-gradient(135deg,rgba(30,58,138,0.35),rgba(30,99,145,0.35));border-radius:16px;padding:28px;border:1px solid rgba(34,211,238,0.2)}
         .property-image{font-size:4rem;text-align:center;padding:24px 0}
+        .property-address{font-size:1.5rem;color:#a5f3fc;margin-bottom:8px}
+        .property-description{color:#93c5fd;margin-bottom:20px}
         .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
-        .price-box{background:rgba(15,23,42,0.6);padding:16px;border-radius:10px}
-        .price-box.active{border:1px solid rgba(6,182,212,0.5)}
+        .price-box{background:rgba(15,23,42,0.6);padding:16px;border-radius:10px;border:1px solid rgba(59,130,246,0.2)}
+        .price-box.active{border-color:rgba(6,182,212,0.5)}
+        .price-label{color:#93c5fd;font-size:0.85rem;margin-bottom:6px}
+        .price-amount{color:#06b6d4;font-size:1.4rem;font-weight:700}
+        .bidder-info{background:rgba(15,23,42,0.6);padding:16px;border-radius:10px;margin:16px 0;border:1px solid rgba(59,130,246,0.2)}
+        .bidder-name{color:#fbbf24;font-size:1.2rem;font-weight:600}
+        .calling-status{background:rgba(239,68,68,0.15);padding:16px;border-radius:10px;margin:16px 0;border:2px solid rgba(239,68,68,0.3)}
+        .calling-text{font-size:1.1rem;font-weight:600;margin-bottom:8px}
+        .calling-text.first{color:#fbbf24}
+        .calling-text.second{color:#fb923c}
+        .calling-text.third{color:#ef4444}
+        .calling-timer{font-family:'Courier New',monospace;font-size:2.2rem;color:#a5f3fc;text-align:center}
         .bid-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-        .bid-btn{padding:12px;border-radius:8px;background:linear-gradient(135deg,#06b6d4 0%,#0891b2 100%);color:white;border:none;font-weight:600}
-        .bidders-list{background:linear-gradient(135deg,rgba(30,58,138,0.35),rgba(30,99,145,0.35));padding:16px;border-radius:12px;max-height:640px;overflow:auto}
+        .bid-btn{padding:12px;border-radius:8px;background:linear-gradient(135deg,#06b6d4 0%,#0891b2 100%);color:white;border:none;font-weight:600;cursor:pointer}
+        .bid-btn:hover{transform:scale(1.03)}
+        .bidders-list{background:linear-gradient(135deg,rgba(30,58,138,0.35),rgba(30,99,145,0.35));padding:16px;border-radius:12px;max-height:640px;overflow:auto;border:1px solid rgba(34,211,238,0.2)}
+        .bidder-item{display:flex;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:8px;background:rgba(15,23,42,0.6);border:1px solid rgba(59,130,246,0.15)}
         .sold-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:none;justify-content:center;align-items:center;z-index:1000;flex-direction:column;gap:18px}
         .sold-overlay.active{display:flex}
-
-        /* ✅ GIF 容器（仅替代 SVG） */
+        
+        /* ✅ GIF 容器 */
+        .gavel-container {
+            margin-bottom: 20px;
+        }
         .gavel-container img{
             width:260px;
             display:block;
-            margin-bottom:10px;
         }
 
         .sold-message{font-size:2.8rem;font-weight:700;background:linear-gradient(90deg,#fbbf24 0%,#f97316 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
         .sold-details{color:#a5f3fc;font-size:1.2rem}
+        .message-box{padding:12px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);border-radius:8px;color:#86efac;margin-top:12px}
         .hidden{display:none}
+        .property-info{color:#fbbf24;font-weight:600;margin-bottom:16px;font-size:1.1rem}
     </style>
 </head>
-
 <body>
 
 <div class="sold-overlay" id="soldOverlay">
-
-    <!-- ❌ 原 SVG 已移除 -->
-    <!-- ✅ 改成 GIF 容器（不影响其他结构） -->
     <div class="gavel-container" id="gavelContainer"></div>
-
     <div class="sold-message">SOLD! 🎉</div>
     <div class="sold-details" id="soldDetails">赢家: —</div>
     <div class="sold-details">⏳ 等待老师进入下一件房产...</div>
@@ -61,27 +75,54 @@
                 <button onclick="joinAuction()">加入竞拍</button>
             </div>
         </div>
-        <div id="welcomeText" class="hidden">欢迎, <span id="displayName"></span></div>
+        <div id="welcomeText" class="hidden">欢迎, <span id="displayName"></span> 👋 | 参与人数: <span id="participantCount">0</span>/20</div>
     </div>
 
     <div id="mainContent" class="hidden">
+        <div class="property-info" id="propertyInfo">正在竞拍房产 1/4</div>
         <div class="main-content">
             <div class="auction-card">
                 <div class="property-image" id="propertyImage">🏢</div>
-                <h2 id="propertyAddress">Pavilion KL</h2>
+                <h2 class="property-address" id="propertyAddress">Pavilion KL</h2>
+                <p class="property-description" id="propertyDescription">豪华公寓</p>
+
                 <div class="price-grid">
-                    <div class="price-box"><div>起价</div><div id="openingPrice">RM 500,000</div></div>
-                    <div class="price-box active"><div>当前出价</div><div id="currentPrice">RM 500,000</div></div>
+                    <div class="price-box">
+                        <div class="price-label">起价</div>
+                        <div class="price-amount" id="openingPrice">RM 500,000</div>
+                    </div>
+                    <div class="price-box active">
+                        <div class="price-label">当前出价</div>
+                        <div class="price-amount" id="currentPrice">RM 500,000</div>
+                    </div>
                 </div>
-                <div>最高竞价者：<strong id="highBidder">等待中...</strong></div>
+
+                <div class="bidder-info">
+                    <div class="price-label">最高竞价者</div>
+                    <div class="bidder-name" id="highBidder">等待中...</div>
+                </div>
+
+                <div id="callingStatusDiv" class="calling-status hidden">
+                    <div class="calling-text" id="callingText">1st Calling</div>
+                    <div class="calling-timer" id="callingTimer">10</div>
+                </div>
+
+                <div style="font-size:0.9rem;color:#93c5fd;margin:10px 0">下一个出价至少: <strong id="minBidDisplay" style="color:#06b6d4">RM 505,000</strong></div>
+
                 <div class="bid-buttons">
                     <button class="bid-btn" onclick="placeBid(5000)">+RM 5,000</button>
                     <button class="bid-btn" onclick="placeBid(10000)">+RM 10,000</button>
                     <button class="bid-btn" onclick="placeBid(15000)">+RM 15,000</button>
                     <button class="bid-btn" onclick="placeBid(25000)">+RM 25,000</button>
                 </div>
+
+                <div id="messageBox" class="message-box hidden"></div>
             </div>
-            <div class="bidders-list"><div id="biddersList">等待竞价者...</div></div>
+
+            <div class="bidders-list">
+                <div style="font-weight:700;margin-bottom:8px">👥 竞价者排行</div>
+                <div id="biddersList">等待竞价者...</div>
+            </div>
         </div>
     </div>
 </div>
@@ -90,73 +131,254 @@
 const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MzM3NDEsImV4cCI6MjA4MzUwOTc0MX0.fxlPFVuHlwLG56bPOeP2s6qsoQn5aEgeBrdHfkvjvyM';
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const propertyInfo = {
+    1: { address: 'Pavilion KL - 豪华公寓', image: '🏢', openingBid: 500000, increment: 5000, description: '吉隆坡中心高端住宅' },
+    2: { address: 'Petaling Jaya - 现代住宅', image: '🏡', openingBid: 350000, increment: 5000, description: '家庭友善的现代住宅' },
+    3: { address: 'Bangsar - 豪宅', image: '🏰', openingBid: 650000, increment: 10000, description: '高端社区的独立豪宅' },
+    4: { address: 'Subang Jaya - 公寓', image: '🏙️', openingBid: 400000, increment: 5000, description: '现代化城市公寓' },
+};
 
 let userName = '';
+let currentProperty = 1;
 let currentPropertyObj = null;
+let bidders = [];
 let soldAlreadyShown = false;
+let lastTeacherOpenNotified = null;
 
 async function joinAuction(){
     userName = document.getElementById('userNameInput').value.trim();
     if(!userName) return alert('请输入你的名字');
+    
     document.getElementById('userInputSection').classList.add('hidden');
     document.getElementById('welcomeText').classList.remove('hidden');
     document.getElementById('displayName').textContent = userName;
     document.getElementById('mainContent').classList.remove('hidden');
 
+    // ✅ 订阅实时更新
     sb.channel('properties-changes')
-      .on('postgres_changes',{event:'*',schema:'public',table:'properties'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'properties'}, () => loadData())
+      .subscribe();
+    
+    sb.channel('bidders-changes')
+      .on('postgres_changes',{event:'*',schema:'public',table:'bidders'}, () => loadData())
       .subscribe();
 
-    loadData();
+    await loadData();
 }
 
 async function loadData(){
-    const { data } = await sb.from('properties').select('*').limit(1).single();
-    if(!data) return;
-    currentPropertyObj = data;
-    updateUI();
-
-    if(data.status === 'sold'){
-        if(!soldAlreadyShown){
-            showSoldOverlay();
-            soldAlreadyShown = true;
+    try {
+        const { data: allProps, error: propsError } = await sb
+            .from('properties')
+            .select('*')
+            .order('id', { ascending: true });
+        
+        if (propsError) {
+            console.error('Properties error:', propsError);
+            return;
         }
-    }else{
-        hideSoldOverlay();
-        soldAlreadyShown = false;
+
+        if (!allProps || allProps.length === 0) return;
+
+        // ✅ 检查老师是否打开了新房产
+        const teacherOpened = allProps
+            .filter(p => p.opened_by_teacher === true)
+            .sort((a, b) => b.id - a.id)[0];
+        
+        if (teacherOpened && teacherOpened.id !== currentProperty) {
+            currentProperty = teacherOpened.id;
+            currentPropertyObj = teacherOpened;
+            soldAlreadyShown = false;
+            if (lastTeacherOpenNotified !== teacherOpened.id) {
+                showMessage(`✨ 老师已打开下一件房产 ${teacherOpened.id}，页面已切换`);
+                lastTeacherOpenNotified = teacherOpened.id;
+            }
+        } else {
+            let found = allProps.find(p => p.id === currentProperty);
+            if (!found) { 
+                found = allProps[0]; 
+                currentProperty = found.id; 
+            }
+            currentPropertyObj = found;
+        }
+
+        // ✅ 加载竞价记录
+        const { data: biddersData, error: biddersError } = await sb
+            .from('bidders')
+            .select('*')
+            .eq('property_id', currentProperty)
+            .order('id', { ascending: false });
+        
+        if (biddersError) {
+            console.error('Bidders error:', biddersError);
+            bidders = [];
+        } else {
+            bidders = biddersData || [];
+        }
+
+        updateUI();
+
+        // ✅ 检查是否已成交
+        if (currentPropertyObj && currentPropertyObj.status === 'sold') {
+            if (!soldAlreadyShown) { 
+                showSoldOverlay(); 
+                soldAlreadyShown = true; 
+            }
+        } else {
+            hideSoldOverlay(); 
+            soldAlreadyShown = false;
+        }
+    } catch (err) {
+        console.error('loadData error:', err);
     }
 }
 
 async function placeBid(inc){
-    const bid = Number(currentPropertyObj.current_price||0) + inc;
-    await sb.from('properties')
-      .update({current_price:bid, highest_bidder:userName})
-      .eq('id', currentPropertyObj.id);
+    if (!currentPropertyObj) return;
+    if (currentPropertyObj.status === 'sold') {
+        showMessage('❌ 此房产已成交');
+        return;
+    }
+
+    try {
+        const bid = Number(currentPropertyObj.current_price||0) + inc;
+        
+        const { error: updateError } = await sb
+            .from('properties')
+            .update({current_price:bid, highest_bidder:userName})
+            .eq('id', currentPropertyObj.id);
+
+        if (updateError) {
+            console.error('Update error:', updateError);
+            showMessage('❌ 出价失败');
+            return;
+        }
+
+        const { error: insertError } = await sb
+            .from('bidders')
+            .insert({ 
+                property_id: currentPropertyObj.id, 
+                bidder_name: userName, 
+                bid_amount: bid
+            });
+
+        if (insertError) {
+            console.error('Insert error:', insertError);
+        }
+
+        showMessage(`✓ ${userName} 出价 RM ${bid.toLocaleString()}`);
+        await loadData();
+    } catch (err) {
+        console.error('placeBid error:', err);
+        showMessage('❌ 出价失败');
+    }
 }
 
-/* ✅ 唯一被改的 JS：GIF 重新播放 */
+/* ✅ GIF 动画播放 */
 function playGavelAnimation(){
     const container = document.getElementById('gavelContainer');
     container.innerHTML = '';
     const img = document.createElement('img');
-    img.src = 'gavel.gif'; // 和 HTML 同目录
+    
+    // ✅ 使用 GitHub raw 链接
+    img.src = 'https://raw.githubusercontent.com/ZACK9905/property-auction/main/gavel.gif';
+    
+    img.onerror = function() {
+        console.error('❌ GIF 加载失败，请检查路径');
+        container.innerHTML = '<div style="font-size:100px">🔨</div>';
+    };
+    
     container.appendChild(img);
 }
 
 function showSoldOverlay(){
+    if (!currentPropertyObj) return;
     document.getElementById('soldDetails').textContent =
-        `赢家: ${currentPropertyObj.highest_bidder} - RM ${Number(currentPropertyObj.current_price).toLocaleString()}`;
+        `赢家: ${currentPropertyObj.highest_bidder || '无'} - RM ${Number(currentPropertyObj.current_price || 0).toLocaleString()}`;
     playGavelAnimation();
     document.getElementById('soldOverlay').classList.add('active');
 }
+
 function hideSoldOverlay(){
     document.getElementById('soldOverlay').classList.remove('active');
 }
-function updateUI(){
-    document.getElementById('currentPrice').textContent = `RM ${Number(currentPropertyObj.current_price).toLocaleString()}`;
-    document.getElementById('highBidder').textContent = currentPropertyObj.highest_bidder || '等待中...';
+
+function showMessage(text) {
+    const box = document.getElementById('messageBox');
+    box.innerHTML = text;
+    box.classList.remove('hidden');
+    setTimeout(()=>box.classList.add('hidden'), 3000);
 }
+
+function updateUI(){
+    updateDisplay();
+    updateBidders();
+    updateParticipants();
+}
+
+function updateDisplay() {
+    if (!currentPropertyObj) return;
+    const info = propertyInfo[currentProperty] || propertyInfo[1];
+    const minBid = Number(currentPropertyObj.current_price || 0) + (info.increment || 5000);
+
+    document.getElementById('propertyImage').textContent = info.image;
+    document.getElementById('propertyAddress').textContent = info.address;
+    document.getElementById('propertyDescription').textContent = info.description;
+    document.getElementById('openingPrice').textContent = `RM ${info.openingBid.toLocaleString()}`;
+    document.getElementById('currentPrice').textContent = `RM ${Number(currentPropertyObj.current_price || 0).toLocaleString()}`;
+    document.getElementById('highBidder').textContent = currentPropertyObj.highest_bidder || '等待中...';
+    document.getElementById('minBidDisplay').textContent = `RM ${minBid.toLocaleString()}`;
+    document.getElementById('propertyInfo').textContent = `正在竞拍房产 ${currentProperty}/4`;
+
+    const callingDiv = document.getElementById('callingStatusDiv');
+    if (currentPropertyObj.stage > 0) {
+        callingDiv.classList.remove('hidden');
+        const stages = ['', '1st Calling', '2nd Calling', '3rd Calling - Going Once...'];
+        const callingText = document.getElementById('callingText');
+        callingText.textContent = stages[currentPropertyObj.stage] || 'Calling';
+        callingText.className = currentPropertyObj.stage === 1 ? 'calling-text first' : 
+                               currentPropertyObj.stage === 2 ? 'calling-text second' : 
+                               'calling-text third';
+        document.getElementById('callingTimer').textContent = currentPropertyObj.timer;
+    } else {
+        callingDiv.classList.add('hidden');
+    }
+}
+
+function updateBidders() {
+    if (!bidders || bidders.length === 0) {
+        document.getElementById('biddersList').innerHTML = '<div style="color:#93c5fd">等待竞价者...</div>';
+        return;
+    }
+    const map = {};
+    bidders.forEach(b => {
+        if (!map[b.bidder_name] || b.bid_amount > map[b.bidder_name]) {
+            map[b.bidder_name] = b.bid_amount;
+        }
+    });
+    const sorted = Object.entries(map)
+        .map(([name, amount]) => ({ name, amount }))
+        .sort((a,b)=>b.amount-a.amount);
+    
+    document.getElementById('biddersList').innerHTML = sorted
+        .map((b,i)=>`<div class="bidder-item"><span>${i+1}. ${b.name}</span><span>RM ${b.amount.toLocaleString()}</span></div>`)
+        .join('');
+}
+
+function updateParticipants() {
+    if (!bidders) { 
+        document.getElementById('participantCount').textContent = '0'; 
+        return; 
+    }
+    const unique = new Set(bidders.map(b=>b.bidder_name));
+    document.getElementById('participantCount').textContent = unique.size;
+}
+
+document.getElementById('userNameInput').addEventListener('keypress', e => { 
+    if (e.key === 'Enter') joinAuction(); 
+});
 </script>
 
 </body>
