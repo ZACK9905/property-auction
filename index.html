@@ -20,18 +20,18 @@
         .property-image-container{
             width:100%;
             max-width:600px;
-            margin:0 auto 16px auto;
+            margin:0 auto 20px auto;
             background:rgba(15,23,42,0.6);
             border-radius:12px;
-            padding:15px;
+            padding:20px;
             display:flex;
             align-items:center;
             justify-content:center;
-            min-height:180px;
+            min-height:280px;
         }
         .property-image{
             max-width:100%;
-            max-height:220px;
+            max-height:320px;
             width:auto;
             height:auto;
             object-fit:contain;
@@ -47,10 +47,10 @@
             justify-content:center;
             font-size:4rem;
         }
-        .property-address{font-size:1.5rem;color:#a5f3fc;margin-bottom:8px}
-        .property-description{color:#93c5fd;margin-bottom:12px}
-        .property-details{background:rgba(15,23,42,0.6);padding:12px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;color:#cbd5e1}
-        .property-details div{margin-bottom:4px}
+        .property-address{font-size:1.3rem;color:#a5f3fc;margin-bottom:6px}
+        .property-description{color:#93c5fd;margin-bottom:10px;font-size:0.9rem}
+        .property-details{background:rgba(15,23,42,0.6);padding:10px;border-radius:8px;margin-bottom:16px;font-size:0.85rem;color:#cbd5e1}
+        .property-details div{margin-bottom:3px}
         .price-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:20px 0}
         .price-box{background:rgba(15,23,42,0.6);padding:16px;border-radius:10px;border:1px solid rgba(59,130,246,0.2)}
         .price-box.active{
@@ -145,6 +145,55 @@
         .message-box{padding:12px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);border-radius:8px;color:#86efac;margin-top:12px}
         .hidden{display:none}
         .property-info{color:#fbbf24;font-weight:600;margin-bottom:16px;font-size:1.1rem}
+        
+        /* 手机端响应式设计 */
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .header h1 { font-size: 1.6rem; }
+            .main-content { 
+                grid-template-columns: 1fr; 
+                gap: 15px; 
+            }
+            .auction-card { padding: 20px; }
+            .property-image-container { 
+                min-height: 240px;
+                padding: 15px;
+            }
+            .property-image { max-height: 280px; }
+            .property-address { font-size: 1.2rem; }
+            .price-grid { 
+                grid-template-columns: 1fr; 
+                gap: 10px; 
+            }
+            .price-amount { font-size: 1.3rem; }
+            .price-amount.highlight { font-size: 1.5rem; }
+            .bidder-name { font-size: 1rem; }
+            .calling-timer { font-size: 1.8rem; }
+            .bid-btn { 
+                font-size: 1.1rem; 
+                padding: 14px; 
+            }
+            .bidders-list { 
+                max-height: 400px;
+                order: -1; /* 在手机上显示在上方 */
+            }
+            .property-info { font-size: 1rem; }
+        }
+        
+        /* 小屏手机 */
+        @media (max-width: 480px) {
+            .header h1 { font-size: 1.4rem; }
+            .property-image-container { 
+                min-height: 200px;
+                padding: 12px;
+            }
+            .property-image { max-height: 240px; }
+            .property-address { font-size: 1.1rem; }
+            .price-amount { font-size: 1.1rem; }
+            .price-amount.highlight { font-size: 1.3rem; }
+            .calling-timer { font-size: 1.5rem; }
+            .bid-btn { font-size: 1rem; }
+        }
     </style>
 </head>
 <body>
