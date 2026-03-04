@@ -178,10 +178,11 @@
                 <div class="property-selector">
                     <label>选择房产:</label>
                     <select id="propertySelect" onchange="switchProperty()">
-                        <option value="1">房产 1 - Pavilion KL</option>
-                        <option value="2">房产 2 - Petaling Jaya</option>
-                        <option value="3">房产 3 - Bangsar</option>
-                        <option value="4">房产 4 - Subang Jaya</option>
+                        <option value="1">房产 1 - Taman Puteri Subang 🏠</option>
+                        <option value="2">房产 2 - Setia Alam 🏡</option>
+                        <option value="3">房产 3 - Taman TTDI Shah Alam 🏰</option>
+                        <option value="4">房产 4 - Bandar Mahkota Cheras 🏘️</option>
+                        <option value="5">房产 5 - Taman Subang Murni 🌳</option>
                     </select>
                 </div>
 
@@ -208,7 +209,6 @@
                     </div>
                 </div>
 
-                <!-- ✅ 新增 START 按钮 -->
                 <button id="startBiddingBtn" class="btn-start" onclick="startBidding()">🟢 START 竞标</button>
                 <div id="silentCountdownIndicator" class="silent-countdown-indicator hidden">
                     ⏱️ 静默倒数: <span id="silentCountdownDisplay">10</span> 秒
@@ -252,7 +252,7 @@
                     </div>
                     <div class="status-row">
                         <span class="status-label">已成交房产:</span>
-                        <span class="status-value" id="soldCount">0</span>
+                        <span class="status-value" id="soldCount">0/5</span>
                     </div>
                 </div>
             </div>
@@ -274,7 +274,23 @@
         let allProperties = {};
         let autoModeInterval = null;
 
-        const openingBids = {1:500000,2:350000,3:650000,4:400000};
+        // ✅ 更新为5个房产的起拍价
+        const openingBids = {
+            1: 450000,  // Taman Puteri Subang
+            2: 550000,  // Setia Alam
+            3: 688500,  // Taman TTDI Shah Alam
+            4: 486000,  // Bandar Mahkota Cheras
+            5: 445000   // Taman Subang Murni
+        };
+
+        // ✅ 房产名称映射
+        const propertyNames = {
+            1: 'Taman Puteri Subang 🏠',
+            2: 'Setia Alam 🏡',
+            3: 'Taman TTDI Shah Alam 🏰',
+            4: 'Bandar Mahkota Cheras 🏘️',
+            5: 'Taman Subang Murni 🌳'
+        };
 
         async function loadData() {
             try {
@@ -344,7 +360,6 @@
             }
         }
 
-        // ✅ 新功能：START 竞标
         async function startBidding() {
             try {
                 await sb.from('properties').update({ 
@@ -439,7 +454,6 @@
             }
         }
 
-        // ✅ 完整自动模式（包含 START）
         async function startFullAutoMode() {
             const prop = allProperties[selectedProperty];
             if (!prop) return;
@@ -454,7 +468,6 @@
             document.getElementById('autoModeStatus').classList.remove('hidden');
             showMessage('✓ 完整自動模式已啟動');
 
-            // 先 START
             await sb.from('properties').update({ 
                 bidding_started: true,
                 silent_countdown: 10
@@ -471,7 +484,6 @@
                         return;
                     }
 
-                    // 处理静默倒数
                     if (data.silent_countdown > 0) {
                         await sb.from('properties').update({ 
                             silent_countdown: data.silent_countdown - 1 
@@ -485,7 +497,6 @@
                             showMessage('⏩ 靜默倒數結束，進入 1st Calling');
                         }
                     }
-                    // 处理 Calling 阶段
                     else if (data.stage > 0) {
                         if (data.timer > 0) {
                             await sb.from('properties').update({ timer: data.timer - 1 }).eq('id', selectedProperty);
@@ -532,7 +543,6 @@
             document.getElementById('propertySelect').value = String(selectedProperty);
             document.getElementById('currentStatus').textContent = prop.status === 'open' ? '進行中' : '已成交';
             
-            // ✅ 显示竞标状态
             const biddingStatusEl = document.getElementById('biddingStatus');
             const startBtn = document.getElementById('startBiddingBtn');
             const silentIndicator = document.getElementById('silentCountdownIndicator');
@@ -578,7 +588,7 @@
                 }
                 const { data: allProps } = await sb.from('properties').select('*');
                 const soldCount = (allProps || []).filter(p => p.status === 'sold').length;
-                document.getElementById('soldCount').textContent = soldCount;
+                document.getElementById('soldCount').textContent = `${soldCount}/5`;
             } catch (err) { console.error('統計錯誤:', err); }
         }
 
@@ -593,7 +603,7 @@
                 .sort((a,b)=> parseInt(a[0]) - parseInt(b[0]))
                 .map(([id, prop]) => `
                 <div class="property-row">
-                    <div class="property-name">房产 ${id} ${prop.bidding_started ? '✅' : '⏳'}</div>
+                    <div class="property-name">房产 ${id} - ${propertyNames[id] || ''} ${prop.bidding_started ? '✅' : '⏳'}</div>
                     <div>RM ${Number(prop.current_price || 0).toLocaleString()}</div>
                     <div style="color:#a5f3fc;">${prop.highest_bidder || '等待中...'}</div>
                     <div class="property-status ${prop.status === 'open' ? 'status-open' : 'status-sold'}">
