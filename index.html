@@ -658,38 +658,52 @@ function showMessage(text) {
 function playBidSound() {
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        oscillator.frequency.setValueAtTime(880, ctx.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(1100, ctx.currentTime + 0.05);
-        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-        oscillator.start(ctx.currentTime);
-        oscillator.stop(ctx.currentTime + 0.15);
+        
+        // 第一声哔
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.frequency.setValueAtTime(1200, ctx.currentTime);
+        osc1.frequency.exponentialRampToValueAtTime(1500, ctx.currentTime + 0.08);
+        gain1.gain.setValueAtTime(1.5, ctx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+        osc1.start(ctx.currentTime);
+        osc1.stop(ctx.currentTime + 0.25);
+
+        // 第二声哔（稍后）
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.frequency.setValueAtTime(1500, ctx.currentTime + 0.15);
+        gain2.gain.setValueAtTime(0.0, ctx.currentTime);
+        gain2.gain.setValueAtTime(1.5, ctx.currentTime + 0.15);
+        gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        osc2.start(ctx.currentTime + 0.15);
+        osc2.stop(ctx.currentTime + 0.4);
     } catch(e) { console.log('Audio not supported'); }
 }
 
 function playGavelSound() {
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // 撞击声
-        const bufferSize = ctx.sampleRate * 0.3;
+
+        // 噪音撞击层
+        const bufferSize = ctx.sampleRate * 0.5;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) {
-            data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 3);
+            data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
         }
         const source = ctx.createBufferSource();
         source.buffer = buffer;
         const gainNode = ctx.createGain();
-        gainNode.gain.setValueAtTime(1.0, ctx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        gainNode.gain.setValueAtTime(3.0, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
         const filter = ctx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.frequency.value = 200;
+        filter.frequency.value = 300;
         source.connect(filter);
         filter.connect(gainNode);
         gainNode.connect(ctx.destination);
@@ -700,12 +714,25 @@ function playGavelSound() {
         const oscGain = ctx.createGain();
         osc.connect(oscGain);
         oscGain.connect(ctx.destination);
-        osc.frequency.setValueAtTime(120, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.2);
-        oscGain.gain.setValueAtTime(0.8, ctx.currentTime);
-        oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+        osc.frequency.setValueAtTime(150, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.3);
+        oscGain.gain.setValueAtTime(3.0, ctx.currentTime);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.2);
+        osc.stop(ctx.currentTime + 0.3);
+
+        // 高频撞击感
+        const osc2 = ctx.createOscillator();
+        const oscGain2 = ctx.createGain();
+        osc2.type = 'square';
+        osc2.connect(oscGain2);
+        oscGain2.connect(ctx.destination);
+        osc2.frequency.setValueAtTime(800, ctx.currentTime);
+        osc2.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
+        oscGain2.gain.setValueAtTime(1.5, ctx.currentTime);
+        oscGain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+        osc2.start(ctx.currentTime);
+        osc2.stop(ctx.currentTime + 0.1);
     } catch(e) { console.log('Audio not supported'); }
 }
 
