@@ -396,6 +396,7 @@ async function joinAuction(){
             if (error.message.includes('房间已满')) {
                 alert(`房间已满！最多只能有 ${MAX_PARTICIPANTS} 人参与此拍卖。`);
             } else if (error.code === '23505') {
+                hasJoinedCurrentProperty = true;
                 proceedToAuction();
             } else {
                 console.error('加入失败:', error);
@@ -644,6 +645,7 @@ function updateDisplay() {
     const bidBtn = document.getElementById('bidBtn');
 
     const canBid = currentPropertyObj.bidding_started && currentPropertyObj.status !== 'sold' && hasJoinedCurrentProperty;
+    console.log('🔍 canBid:', canBid, '| bidding_started:', currentPropertyObj.bidding_started, '| status:', currentPropertyObj.status, '| hasJoined:', hasJoinedCurrentProperty);
     
     if (!currentPropertyObj.bidding_started && currentPropertyObj.status === 'open') {
         waitingNotice.classList.remove('hidden');
