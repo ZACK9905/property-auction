@@ -424,6 +424,15 @@
                     showMessage('❌ 沒有下一件房産', true);
                     return;
                 }
+
+                // 自动把当前房产标为 sold
+                const now = new Date().toISOString();
+                await sb.from('properties').update({
+                    status: 'sold',
+                    stage: 0,
+                    timer: 0,
+                    sold_at: now
+                }).eq('id', selectedProperty);
                 
                 await sb.from('properties').update({ opened_by_teacher: false }).neq('id', nextId);
                 await sb.from('properties').update({
