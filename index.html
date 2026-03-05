@@ -238,7 +238,7 @@
         <h1>🔨 KL Property Auction Live</h1>
         <div id="userInputSection">
             <div class="input-group">
-                <input type="text" id="userNameInput" placeholder="输入你的名字..." />
+                <input type="text" id="userNameInput" placeholder="输入你的名字..." autocomplete="off" />
                 <button onclick="joinAuction()">加入竞拍</button>
             </div>
         </div>
@@ -396,6 +396,22 @@ async function joinAuction(){
     userName = tempName;
     
     try {
+        // 先检查名字是否已经在参与者列表里
+        const { data: existing } = await sb
+            .from('participants')
+            .select('id')
+            .eq('property_id', currentProperty)
+            .eq('participant_name', userName)
+            .single();
+
+        if (existing) {
+            // 名字已在列表，直接放行
+            hasJoinedCurrentProperty = true;
+            proceedToAuction();
+            return;
+        }
+
+        // 名字不在，尝试新加入
         const { data, error } = await sb
             .from('participants')
             .insert([{ property_id: currentProperty, participant_name: userName, is_active: true }])
