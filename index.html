@@ -503,15 +503,28 @@ async function loadData(){
 
             // 只有已登录的用户才需要踢回登录画面
             if (userName && lastTeacherOpenNotified !== activeProperty.id) {
-                hasJoinedCurrentProperty = false;
                 lastTeacherOpenNotified = activeProperty.id;
-                userName = '';
-                document.getElementById('soldOverlay').classList.remove('active');
-                document.getElementById('mainContent').classList.add('hidden');
-                document.getElementById('welcomeText').classList.add('hidden');
-                document.getElementById('userInputSection').classList.remove('hidden');
-                document.getElementById('userNameInput').value = '';
-                alert(`🏠 老师已开放房产 ${currentProperty}！请重新输入名字加入竞拍。`);
+
+                // 先显示 SOLD overlay，3秒后才踢回登录画面
+                const soldProp = allProps.find(p => p.id === (activeProperty.id - 1));
+                if (soldProp && hasJoinedCurrentProperty) {
+                    document.getElementById('soldDetails').textContent =
+                        `赢家: ${soldProp.highest_bidder || '无'} - RM ${Number(soldProp.current_price || 0).toLocaleString()}`;
+                    playGavelAnimation();
+                    document.getElementById('soldOverlay').classList.add('active');
+                }
+
+                setTimeout(() => {
+                    hasJoinedCurrentProperty = false;
+                    userName = '';
+                    document.getElementById('soldOverlay').classList.remove('active');
+                    document.getElementById('mainContent').classList.add('hidden');
+                    document.getElementById('welcomeText').classList.add('hidden');
+                    document.getElementById('userInputSection').classList.remove('hidden');
+                    document.getElementById('userNameInput').value = '';
+                    alert(`🏠 老师已开放房产 ${currentProperty}！请重新输入名字加入竞拍。`);
+                }, 4000);
+
             } else if (!userName) {
                 // 新用户：静默切换到最新房产，不弹 alert
                 lastTeacherOpenNotified = activeProperty.id;
