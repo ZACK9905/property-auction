@@ -377,9 +377,12 @@ let lastTeacherOpenNotified = null;
 let hasJoinedCurrentProperty = false;
 
 async function joinAuction(){
-    userName = document.getElementById('userNameInput').value.trim();
-    if(!userName) return alert('请输入你的名字');
+    const tempName = document.getElementById('userNameInput').value.trim();
+    if(!tempName) return alert('请输入你的名字');
     
+    // 先刷新一次数据，确保 currentPropertyObj 是最新的
+    await loadData();
+
     if (!currentPropertyObj) {
         alert('请等待房产加载...');
         return;
@@ -389,6 +392,8 @@ async function joinAuction(){
         alert('❌ 此房产已成交，请等待老师开放下一个房产！');
         return;
     }
+
+    userName = tempName;
     
     try {
         const { data, error } = await sb
@@ -399,11 +404,13 @@ async function joinAuction(){
         
         if (error) {
             if (error.message.includes('房间已满')) {
+                userName = '';
                 alert(`房间已满！最多只能有 ${MAX_PARTICIPANTS} 人参与此拍卖。`);
             } else if (error.code === '23505') {
                 hasJoinedCurrentProperty = true;
                 proceedToAuction();
             } else {
+                userName = '';
                 console.error('加入失败:', error);
                 alert('加入失败：' + error.message);
             }
@@ -414,6 +421,7 @@ async function joinAuction(){
         proceedToAuction();
         
     } catch (err) {
+        userName = '';
         console.error('加入房间错误:', err);
         alert('加入失败，请重试！');
     }
@@ -513,8 +521,12 @@ async function loadData(){
 
         updateUI();
 
-        if (currentPropertyObj && currentPropertyObj.status === 'sold') {
-            if (!soldAlreadyShown && userName) { 
+        // 如果用户未登录，永远不显示 sold overlay
+        if (!userName) {
+            hideSoldOverlay();
+            soldAlreadyShown = false;
+        } else if (currentPropertyObj && currentPropertyObj.status === 'sold') {
+            if (!soldAlreadyShown) { 
                 showSoldOverlay(); 
                 soldAlreadyShown = true; 
             }
