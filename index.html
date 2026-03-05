@@ -462,6 +462,7 @@ async function loadData(){
                 lastTeacherOpenNotified = teacherOpened.id;
                 // 踢回登录画面，要求重新填名字
                 userName = '';
+                document.getElementById('soldOverlay').classList.remove('active');
                 document.getElementById('mainContent').classList.add('hidden');
                 document.getElementById('welcomeText').classList.add('hidden');
                 document.getElementById('userInputSection').classList.remove('hidden');
