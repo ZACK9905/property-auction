@@ -466,13 +466,18 @@ async function loadData(){
             .filter(p => p.opened_by_teacher === true)
             .sort((a, b) => b.id - a.id)[0];
 
-        // 找到最新的 open 房产（id最大的非sold房产）
-        const latestOpen = allProps
-            .filter(p => p.status === 'open')
+        // 找已开始竞标的房产
+        const biddingStarted = allProps
+            .filter(p => p.bidding_started === true && p.status !== 'sold')
             .sort((a, b) => b.id - a.id)[0];
 
-        // 决定当前应该显示哪个房产
-        let activeProperty = teacherOpened || latestOpen || allProps[0];
+        // 找 id 最小的 open 房产（排除已sold的）
+        const firstOpen = allProps
+            .filter(p => p.status === 'open')
+            .sort((a, b) => a.id - b.id)[0];
+
+        // 优先级：老师指定 > 正在竞标 > 第一个open房产
+        let activeProperty = teacherOpened || biddingStarted || firstOpen || allProps[0];
 
         if (activeProperty && activeProperty.id !== currentProperty) {
             const oldProperty = currentProperty;
