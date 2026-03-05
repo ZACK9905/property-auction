@@ -332,6 +332,12 @@
                     return;
                 }
 
+                const { error: deleteParticipantsError } = await sb.from('participants').delete().eq('property_id', selectedProperty);
+                if (deleteParticipantsError) {
+                    showMessage('❌ 删除参与者记录失败: ' + deleteParticipantsError.message, true);
+                    return;
+                }
+
                 const { error: updateError } = await sb.from('properties').update({
                     current_price: openingBid,
                     highest_bidder: null,
