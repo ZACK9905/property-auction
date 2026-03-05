@@ -610,6 +610,7 @@ async function placeBid(){
             console.error('Insert error:', insertError);
         }
 
+        playBidSound();
         showMessage(`✓ ${userName} 出价 RM ${bid.toLocaleString()}`);
         await loadData();
     } catch (err) {
@@ -635,6 +636,8 @@ function showSoldOverlay(){
     document.getElementById('soldDetails').textContent =
         `赢家: ${currentPropertyObj.highest_bidder || '无'} - RM ${Number(currentPropertyObj.current_price || 0).toLocaleString()}`;
     playGavelAnimation();
+    playGavelSound();
+    speakText('Sold!');
     document.getElementById('soldOverlay').classList.add('active');
 }
 
@@ -647,6 +650,76 @@ function showMessage(text) {
     box.innerHTML = text;
     box.classList.remove('hidden');
     setTimeout(()=>box.classList.add('hidden'), 3000);
+}
+
+// ============================================
+// 音效 & 语音
+// ============================================
+function playBidSound() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(1100, ctx.currentTime + 0.05);
+        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.15);
+    } catch(e) { console.log('Audio not supported'); }
+}
+
+function playGavelSound() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // 撞击声
+        const bufferSize = ctx.sampleRate * 0.3;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 3);
+        }
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(1.0, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 200;
+        source.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        source.start(ctx.currentTime);
+
+        // 低频撞击
+        const osc = ctx.createOscillator();
+        const oscGain = ctx.createGain();
+        osc.connect(oscGain);
+        oscGain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(120, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.2);
+        oscGain.gain.setValueAtTime(0.8, ctx.currentTime);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.2);
+    } catch(e) { console.log('Audio not supported'); }
+}
+
+let lastSpokenStage = 0;
+function speakText(text) {
+    try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'en-US';
+        utter.rate = 0.9;
+        utter.pitch = 1.0;
+        utter.volume = 1.0;
+        window.speechSynthesis.speak(utter);
+    } catch(e) { console.log('Speech not supported'); }
 }
 
 function updateUI(){
@@ -714,8 +787,22 @@ function updateDisplay() {
                                currentPropertyObj.stage === 2 ? 'calling-text second' : 
                                'calling-text third';
         document.getElementById('callingTimer').textContent = currentPropertyObj.timer;
+
+        // 每个阶段只念一次
+        if (currentPropertyObj.stage !== lastSpokenStage) {
+            lastSpokenStage = currentPropertyObj.stage;
+            const speechTexts = {
+                1: 'First Calling!',
+                2: 'Second Calling!',
+                3: 'Third Calling!'
+            };
+            if (speechTexts[currentPropertyObj.stage]) {
+                speakText(speechTexts[currentPropertyObj.stage]);
+            }
+        }
     } else {
         callingDiv.classList.add('hidden');
+        lastSpokenStage = 0;
     }
 }
 
