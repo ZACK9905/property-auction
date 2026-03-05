@@ -478,77 +478,47 @@ async function loadData(){
 
         if (!allProps || allProps.length === 0) return;
 
-        const teacherOpened = allProps
-            .filter(p => p.opened_by_teacher === true)
-            .sort((a, b) => b.id - a.id)[0];
-
-        // 找已开始竞标的房产
-        const biddingStarted = allProps
+        // 找正在竞标的房产（bidding_started=true 且未sold）
+        const biddingNow = allProps
             .filter(p => p.bidding_started === true && p.status !== 'sold')
             .sort((a, b) => b.id - a.id)[0];
 
-        // 找 id 最小的 open 房产（排除已sold的）
+        // 找 id 最小的 open 房产
         const firstOpen = allProps
             .filter(p => p.status === 'open')
             .sort((a, b) => a.id - b.id)[0];
 
-        // 优先级：老师指定 > 正在竞标 > 第一个open房产
-        let activeProperty = teacherOpened || biddingStarted || firstOpen || allProps[0];
+        // 优先显示正在竞标的房产，否则显示第一个open房产
+        let activeProperty = biddingNow || firstOpen || allProps[allProps.length - 1];
 
-        if (activeProperty && activeProperty.id !== currentProperty) {
-            const oldPropertyId = currentProperty;
-            const oldPropertyObj = allProps.find(p => p.id === oldPropertyId);
+        // 更新 currentPropertyObj
+        let found = allProps.find(p => p.id === currentProperty);
+        if (found) currentPropertyObj = found;
 
-            currentProperty = activeProperty.id;
-            currentPropertyObj = activeProperty;
-            soldAlreadyShown = false;
-
-            // 只有已登录且已加入的用户才显示 SOLD 画面再踢回
-            if (userName && hasJoinedCurrentProperty && lastTeacherOpenNotified !== activeProperty.id) {
-                lastTeacherOpenNotified = activeProperty.id;
-
-                // 显示上一个房产的 SOLD overlay
-                if (oldPropertyObj) {
-                    document.getElementById('soldDetails').textContent =
-                        `赢家: ${oldPropertyObj.highest_bidder || '无'} - RM ${Number(oldPropertyObj.current_price || 0).toLocaleString()}`;
-                    playGavelAnimation();
-                    document.getElementById('soldOverlay').classList.add('active');
-                }
-
-                // 5秒后踢回登录画面
-                setTimeout(() => {
-                    hasJoinedCurrentProperty = false;
-                    userName = '';
-                    document.getElementById('soldOverlay').classList.remove('active');
-                    document.getElementById('mainContent').classList.add('hidden');
-                    document.getElementById('welcomeText').classList.add('hidden');
-                    document.getElementById('userInputSection').classList.remove('hidden');
-                    document.getElementById('userNameInput').value = '';
-                    alert(`🏠 老师已开放房产 ${currentProperty}！请重新输入名字加入竞拍。`);
-                }, 5000);
-
-            } else if (!userName) {
-                // 新用户：静默切换到最新房产，不弹 alert
-                lastTeacherOpenNotified = activeProperty.id;
-                hasJoinedCurrentProperty = false;
-            } else {
-                // 已登录但没参与（只是观看）：直接切换，踢回登录
-                lastTeacherOpenNotified = activeProperty.id;
+        // 检测老师是否刚开始新一场竞标（bidding_started 刚变 true）
+        if (biddingNow && biddingNow.id !== currentProperty) {
+            // 老师开始了新房产的竞标，踢所有人回登录画面
+            if (lastTeacherOpenNotified !== biddingNow.id) {
+                lastTeacherOpenNotified = biddingNow.id;
+                currentProperty = biddingNow.id;
+                currentPropertyObj = biddingNow;
+                soldAlreadyShown = false;
                 hasJoinedCurrentProperty = false;
                 userName = '';
+                document.getElementById('soldOverlay').classList.remove('active');
                 document.getElementById('mainContent').classList.add('hidden');
                 document.getElementById('welcomeText').classList.add('hidden');
                 document.getElementById('userInputSection').classList.remove('hidden');
                 document.getElementById('userNameInput').value = '';
             }
-        } else {
-            let found = allProps.find(p => p.id === currentProperty);
-            if (!found) { 
-                found = allProps[0]; 
-                currentProperty = found.id;
+        } else if (!biddingNow && firstOpen && firstOpen.id !== currentProperty) {
+            // 没有正在竞标的房产，静默切换到第一个open房产（新用户进来用）
+            if (!userName) {
+                currentProperty = firstOpen.id;
+                currentPropertyObj = firstOpen;
+                soldAlreadyShown = false;
                 hasJoinedCurrentProperty = false;
             }
-            currentPropertyObj = found;
         }
 
         const { data: biddersData, error: biddersError } = await sb
@@ -566,18 +536,22 @@ async function loadData(){
 
         updateUI();
 
-        // 如果用户未登录，永远不显示 sold overlay
-        if (!userName) {
-            hideSoldOverlay();
-            soldAlreadyShown = false;
-        } else if (hasJoinedCurrentProperty && currentPropertyObj && currentPropertyObj.status === 'sold') {
-            // 只有已加入且当前房产是 sold 才显示
-            if (!soldAlreadyShown) { 
-                showSoldOverlay(); 
-                soldAlreadyShown = true; 
+        // sold overlay：只要当前房产是 sold，所有人都显示（登录或未登录）
+        // 除非老师已经开始了新一场竞标（此时已被踢回登录画面）
+        if (currentPropertyObj && currentPropertyObj.status === 'sold' && !userName) {
+            // 未登录新用户：显示 sold overlay，等老师开始下一场
+            if (!soldAlreadyShown) {
+                showSoldOverlay();
+                soldAlreadyShown = true;
             }
-        } else {
-            hideSoldOverlay(); 
+        } else if (currentPropertyObj && currentPropertyObj.status === 'sold' && userName) {
+            // 已登录参与者：显示 sold overlay
+            if (!soldAlreadyShown) {
+                showSoldOverlay();
+                soldAlreadyShown = true;
+            }
+        } else if (!currentPropertyObj || currentPropertyObj.status !== 'sold') {
+            hideSoldOverlay();
             soldAlreadyShown = false;
         }
     } catch (err) {
