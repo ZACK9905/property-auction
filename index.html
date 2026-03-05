@@ -699,6 +699,9 @@ function updateParticipants() {
 document.getElementById('userNameInput').addEventListener('keypress', e => { 
     if (e.key === 'Enter') joinAuction(); 
 });
+
+// 页面加载时预先获取房产数据
+loadData();
 </script>
 
 </body>
