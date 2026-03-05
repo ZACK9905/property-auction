@@ -384,6 +384,11 @@ async function joinAuction(){
         alert('请等待房产加载...');
         return;
     }
+
+    if (currentPropertyObj.status === 'sold') {
+        alert('❌ 此房产已成交，请等待老师开放下一个房产！');
+        return;
+    }
     
     try {
         const { data, error } = await sb
@@ -452,16 +457,25 @@ async function loadData(){
         const teacherOpened = allProps
             .filter(p => p.opened_by_teacher === true)
             .sort((a, b) => b.id - a.id)[0];
-        
-        if (teacherOpened && teacherOpened.id !== currentProperty) {
-            currentProperty = teacherOpened.id;
-            currentPropertyObj = teacherOpened;
-            soldAlreadyShown = false;
-            hasJoinedCurrentProperty = false;
 
-            if (lastTeacherOpenNotified !== teacherOpened.id) {
-                lastTeacherOpenNotified = teacherOpened.id;
-                // 踢回登录画面，要求重新填名字
+        // 找到最新的 open 房产（id最大的非sold房产）
+        const latestOpen = allProps
+            .filter(p => p.status === 'open')
+            .sort((a, b) => b.id - a.id)[0];
+
+        // 决定当前应该显示哪个房产
+        let activeProperty = teacherOpened || latestOpen || allProps[0];
+
+        if (activeProperty && activeProperty.id !== currentProperty) {
+            const oldProperty = currentProperty;
+            currentProperty = activeProperty.id;
+            currentPropertyObj = activeProperty;
+            soldAlreadyShown = false;
+
+            // 只有已登录的用户才需要踢回登录画面
+            if (userName && lastTeacherOpenNotified !== activeProperty.id) {
+                hasJoinedCurrentProperty = false;
+                lastTeacherOpenNotified = activeProperty.id;
                 userName = '';
                 document.getElementById('soldOverlay').classList.remove('active');
                 document.getElementById('mainContent').classList.add('hidden');
@@ -469,6 +483,10 @@ async function loadData(){
                 document.getElementById('userInputSection').classList.remove('hidden');
                 document.getElementById('userNameInput').value = '';
                 alert(`🏠 老师已开放房产 ${currentProperty}！请重新输入名字加入竞拍。`);
+            } else if (!userName) {
+                // 新用户：静默切换到最新房产，不弹 alert
+                lastTeacherOpenNotified = activeProperty.id;
+                hasJoinedCurrentProperty = false;
             }
         } else {
             let found = allProps.find(p => p.id === currentProperty);
@@ -645,7 +663,6 @@ function updateDisplay() {
     const bidBtn = document.getElementById('bidBtn');
 
     const canBid = currentPropertyObj.bidding_started && currentPropertyObj.status !== 'sold' && hasJoinedCurrentProperty;
-    console.log('🔍 canBid:', canBid, '| bidding_started:', currentPropertyObj.bidding_started, '| status:', currentPropertyObj.status, '| hasJoined:', hasJoinedCurrentProperty);
     
     if (!currentPropertyObj.bidding_started && currentPropertyObj.status === 'open') {
         waitingNotice.classList.remove('hidden');
