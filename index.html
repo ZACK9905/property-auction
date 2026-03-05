@@ -546,7 +546,8 @@ async function loadData(){
         if (!userName) {
             hideSoldOverlay();
             soldAlreadyShown = false;
-        } else if (currentPropertyObj && currentPropertyObj.status === 'sold') {
+        } else if (hasJoinedCurrentProperty && currentPropertyObj && currentPropertyObj.status === 'sold') {
+            // 只有已加入且当前房产是 sold 才显示
             if (!soldAlreadyShown) { 
                 showSoldOverlay(); 
                 soldAlreadyShown = true; 
