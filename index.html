@@ -495,7 +495,7 @@ async function loadData(){
         updateUI();
 
         if (currentPropertyObj && currentPropertyObj.status === 'sold') {
-            if (!soldAlreadyShown) { 
+            if (!soldAlreadyShown && userName) { 
                 showSoldOverlay(); 
                 soldAlreadyShown = true; 
             }
