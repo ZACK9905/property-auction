@@ -145,6 +145,28 @@
         .message-box{padding:12px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);border-radius:8px;color:#86efac;margin-top:12px}
         .hidden{display:none}
         .property-info{color:#fbbf24;font-weight:600;margin-bottom:16px;font-size:1.1rem}
+
+        /* 新增样式 */
+        .participant-counter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(251, 191, 36, 0.2);
+            border: 2px solid rgba(251, 191, 36, 0.4);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .join-error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 2px solid rgba(239, 68, 68, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            color: #fca5a5;
+            margin-top: 10px;
+            text-align: center;
+        }
         
         /* 手机端响应式设计 */
         @media (max-width: 768px) {
@@ -178,6 +200,12 @@
                 order: -1; /* 在手机上显示在上方 */
             }
             .property-info { font-size: 1rem; }
+            .participant-counter {
+                top: 10px;
+                right: 10px;
+                padding: 8px 14px;
+                font-size: 14px;
+            }
         }
         
         /* 小屏手机 */
@@ -214,7 +242,7 @@
                 <button onclick="joinAuction()">加入竞拍</button>
             </div>
         </div>
-        <div id="welcomeText" class="hidden">欢迎, <span id="displayName"></span> 👋 | 参与人数: <span id="participantCount">0</span>/20</div>
+        <div id="welcomeText" class="hidden">欢迎, <span id="displayName"></span> 👋 | 参与人数: <span id="participantCount">0</span>/12</div>
     </div>
 
     <div id="mainContent" class="hidden">
@@ -285,6 +313,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const MAX_PARTICIPANTS = 12;
+
 const propertyInfo = {
     1: { 
         address: 'Taman Puteri Subang', 
@@ -344,11 +374,46 @@ let currentPropertyObj = null;
 let bidders = [];
 let soldAlreadyShown = false;
 let lastTeacherOpenNotified = null;
+let hasJoinedCurrentProperty = false;
 
 async function joinAuction(){
     userName = document.getElementById('userNameInput').value.trim();
     if(!userName) return alert('请输入你的名字');
     
+    if (!currentPropertyObj) {
+        alert('请等待房产加载...');
+        return;
+    }
+    
+    try {
+        const { data, error } = await sb
+            .from('participants')
+            .insert([{ property_id: currentProperty, participant_name: userName, is_active: true }])
+            .select()
+            .single();
+        
+        if (error) {
+            if (error.message.includes('房间已满')) {
+                alert(`房间已满！最多只能有 ${MAX_PARTICIPANTS} 人参与此拍卖。`);
+            } else if (error.code === '23505') {
+                proceedToAuction();
+            } else {
+                console.error('加入失败:', error);
+                alert('加入失败：' + error.message);
+            }
+            return;
+        }
+        
+        hasJoinedCurrentProperty = true;
+        proceedToAuction();
+        
+    } catch (err) {
+        console.error('加入房间错误:', err);
+        alert('加入失败，请重试！');
+    }
+}
+
+function proceedToAuction() {
     document.getElementById('userInputSection').classList.add('hidden');
     document.getElementById('welcomeText').classList.remove('hidden');
     document.getElementById('displayName').textContent = userName;
@@ -361,8 +426,12 @@ async function joinAuction(){
     sb.channel('bidders-changes')
       .on('postgres_changes',{event:'*',schema:'public',table:'bidders'}, () => loadData())
       .subscribe();
+    
+    sb.channel('participants-changes')
+      .on('postgres_changes',{event:'*',schema:'public',table:'participants'}, () => loadData())
+      .subscribe();
 
-    await loadData();
+    loadData();
 }
 
 async function loadData(){
@@ -387,15 +456,24 @@ async function loadData(){
             currentProperty = teacherOpened.id;
             currentPropertyObj = teacherOpened;
             soldAlreadyShown = false;
+            hasJoinedCurrentProperty = false;
+
             if (lastTeacherOpenNotified !== teacherOpened.id) {
-                showMessage(`✨ 老师已打开下一件房产 ${teacherOpened.id}，页面已切换`);
                 lastTeacherOpenNotified = teacherOpened.id;
+                // 踢回登录画面，要求重新填名字
+                userName = '';
+                document.getElementById('mainContent').classList.add('hidden');
+                document.getElementById('welcomeText').classList.add('hidden');
+                document.getElementById('userInputSection').classList.remove('hidden');
+                document.getElementById('userNameInput').value = '';
+                alert(`🏠 老师已开放房产 ${currentProperty}！请重新输入名字加入竞拍。`);
             }
         } else {
             let found = allProps.find(p => p.id === currentProperty);
             if (!found) { 
                 found = allProps[0]; 
-                currentProperty = found.id; 
+                currentProperty = found.id;
+                hasJoinedCurrentProperty = false;
             }
             currentPropertyObj = found;
         }
@@ -432,6 +510,11 @@ async function loadData(){
 async function placeBid(){
     if (!currentPropertyObj) return;
     
+    if (!hasJoinedCurrentProperty) {
+        showMessage('❌ 请先加入房间才能竞价！');
+        return;
+    }
+    
     if (!currentPropertyObj.bidding_started) {
         showMessage('❌ 竞标尚未开始，请等待老师');
         return;
@@ -443,7 +526,6 @@ async function placeBid(){
     }
 
     try {
-        // 固定每次增加 RM 5,000
         const increment = 5000;
         const bid = Number(currentPropertyObj.current_price||0) + increment;
         
@@ -525,7 +607,6 @@ function updateDisplay() {
     if (!currentPropertyObj) return;
     const info = propertyInfo[currentProperty] || propertyInfo[1];
 
-    // 更新房产图片
     const imgElement = document.getElementById('propertyImageElement');
     const placeholder = document.getElementById('propertyImagePlaceholder');
     
@@ -561,7 +642,7 @@ function updateDisplay() {
     const waitingNotice = document.getElementById('waitingNotice');
     const bidBtn = document.getElementById('bidBtn');
 
-    const canBid = currentPropertyObj.bidding_started && currentPropertyObj.status !== 'sold';
+    const canBid = currentPropertyObj.bidding_started && currentPropertyObj.status !== 'sold' && hasJoinedCurrentProperty;
     
     if (!currentPropertyObj.bidding_started && currentPropertyObj.status === 'open') {
         waitingNotice.classList.remove('hidden');
@@ -607,12 +688,12 @@ function updateBidders() {
 }
 
 function updateParticipants() {
-    if (!bidders) { 
+    if (!currentPropertyObj) { 
         document.getElementById('participantCount').textContent = '0'; 
         return; 
     }
-    const unique = new Set(bidders.map(b=>b.bidder_name));
-    document.getElementById('participantCount').textContent = unique.size;
+    const count = currentPropertyObj.participant_count || 0;
+    document.getElementById('participantCount').textContent = count;
 }
 
 document.getElementById('userNameInput').addEventListener('keypress', e => { 
