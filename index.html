@@ -294,7 +294,7 @@
                 <div class="bid-buttons">
                     <button class="bid-btn" id="bidBtn" onclick="placeBid()">🔨 Bid</button>
                 </div>
-                <div class="bid-info">💡 每次出价固定 <strong style="color:#fbbf24">+RM 5,000</strong></div>
+                <div class="bid-info" id="bidInfoText">💡 每次出价固定 <strong style="color:#fbbf24">+RM 5,000</strong></div>
 
                 <div id="messageBox" class="message-box hidden"></div>
             </div>
@@ -321,7 +321,7 @@ const propertyInfo = {
         image: '🏠', 
         imageUrl: 'puterisubang.png',
         openingBid: 450000, 
-        increment: 5000, 
+        increment: 2000, 
         description: '热门住宅区',
         area: '1302 sq.ft',
         marketValue: 600000
@@ -331,7 +331,7 @@ const propertyInfo = {
         image: '🏡', 
         imageUrl: 'setiaalam.png',
         openingBid: 550000, 
-        increment: 5000, 
+        increment: 2000, 
         description: '现代家庭住宅',
         area: '1173.28 sq.ft',
         marketValue: 750000
@@ -341,7 +341,7 @@ const propertyInfo = {
         image: '🏰', 
         imageUrl: 'TTDI.png',
         openingBid: 688500, 
-        increment: 10000, 
+        increment: 5000, 
         description: '高端住宅区',
         area: '1496 sq.ft',
         marketValue: 950000
@@ -351,7 +351,7 @@ const propertyInfo = {
         image: '🏘️', 
         imageUrl: 'cheras.png',
         openingBid: 486000, 
-        increment: 5000, 
+        increment: 3000, 
         description: '城市便利住宅',
         area: '1302 sq.ft',
         marketValue: 650000
@@ -361,7 +361,7 @@ const propertyInfo = {
         image: '🌳', 
         imageUrl: 'subangmurni.png',
         openingBid: 445000, 
-        increment: 5000, 
+        increment: 3000, 
         description: '成熟的社区',
         area: '1650 sq.ft',
         marketValue: 600000
@@ -578,7 +578,8 @@ async function placeBid(){
     }
 
     try {
-        const increment = 5000;
+        const info = propertyInfo[currentProperty] || propertyInfo[1];
+        const increment = info.increment || 5000;
         const bid = Number(currentPropertyObj.current_price||0) + increment;
         
         const { error: updateError } = await sb
@@ -790,6 +791,8 @@ function updateDisplay() {
     document.getElementById('marketValue').textContent = `RM ${info.marketValue.toLocaleString()}`;
     document.getElementById('highBidder').textContent = currentPropertyObj.highest_bidder || '等待中...';
     document.getElementById('propertyInfo').textContent = `正在竞拍房产 ${currentProperty}/5`;
+    const bidIncrement = info.increment || 5000;
+    document.getElementById('bidInfoText').innerHTML = `💡 每次出价固定 <strong style="color:#fbbf24">+RM ${bidIncrement.toLocaleString()}</strong>`;
 
     const waitingNotice = document.getElementById('waitingNotice');
     const bidBtn = document.getElementById('bidBtn');
