@@ -437,40 +437,128 @@ function backToStep1() {
     document.getElementById('stepItem2').className = 'step';
 }
 
+// ✅ 改进的 PIN 生成函数（使用 crypto）
 function generatePin() {
-    let pin;
-    do { pin = String(Math.floor(1000 + Math.random() * 9000)); } while (pin === SYSTEM_PIN);
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    
+    let pin = String(array[0] % 9000 + 1000);
+    
+    while (pin === SYSTEM_PIN) {
+        crypto.getRandomValues(array);
+        pin = String(array[0] % 9000 + 1000);
+    }
+    
     return pin;
 }
 
+// ✅ 改进的注册提交函数（修复 PIN 检查逻辑）
 async function submitRegistration() {
     const name = document.getElementById('fullNameInput').value.trim();
     const err = document.getElementById('step2Error');
-    if (!name) { err.textContent = 'Please enter your full name.'; err.style.display = 'block'; return; }
-    if (name.length < 3) { err.textContent = 'Please enter your full name (at least 3 characters).'; err.style.display = 'block'; return; }
+    
+    if (!name) { 
+        err.textContent = 'Please enter your full name.'; 
+        err.style.display = 'block'; 
+        return; 
+    }
+    
+    if (name.length < 3) { 
+        err.textContent = 'Please enter your full name (at least 3 characters).'; 
+        err.style.display = 'block'; 
+        return; 
+    }
+    
     err.style.display = 'none';
     const btn = document.getElementById('registerBtn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Registering...';
 
     try {
-        const { data: existing } = await sb.from('registrations').select('id').eq('property_id', selectedPropertyId).ilike('full_name', name).single();
-        if (existing) { err.textContent = `"${name}" is already registered for this property.`; err.style.display = 'block'; btn.disabled = false; btn.innerHTML = 'Register & Get PIN'; return; }
+        // 检查是否已注册
+        const { data: existing } = await sb
+            .from('registrations')
+            .select('id')
+            .eq('property_id', selectedPropertyId)
+            .ilike('full_name', name)
+            .single();
+        
+        if (existing) { 
+            err.textContent = `"${name}" is already registered for this property.`; 
+            err.style.display = 'block'; 
+            btn.disabled = false; 
+            btn.innerHTML = 'Register & Get PIN'; 
+            return; 
+        }
+        
+        // 检查房间是否已满
         const count = participantCounts[selectedPropertyId] || 0;
-        if (count >= 12) { err.textContent = 'This property is full (12/12). Please choose another.'; err.style.display = 'block'; btn.disabled = false; btn.innerHTML = 'Register & Get PIN'; return; }
+        if (count >= 12) { 
+            err.textContent = 'This property is full (12/12). Please choose another.'; 
+            err.style.display = 'block'; 
+            btn.disabled = false; 
+            btn.innerHTML = 'Register & Get PIN'; 
+            return; 
+        }
 
-        let pin, attempts = 0;
-        while (attempts < 20) {
+        // ✅ 改进的 PIN 生成逻辑
+        let pin;
+        let attempts = 0;
+        const MAX_ATTEMPTS = 50;
+        
+        while (attempts < MAX_ATTEMPTS) {
             pin = generatePin();
-            const { data: pinExists } = await sb.from('registrations').select('id').eq('pin', pin).single();
-            if (!pinExists) break;
+            
+            // ✅ 正确的检查方式
+            const { data: pinCheck, error: pinError } = await sb
+                .from('registrations')
+                .select('id')
+                .eq('pin', pin)
+                .single();
+            
+            // 如果返回 PGRST116 错误，说明 PIN 不存在（可用）
+            if (pinError && pinError.code === 'PGRST116') {
+                break;
+            }
+            
             attempts++;
         }
 
-        const { error } = await sb.from('registrations').insert([{ property_id: selectedPropertyId, full_name: name, pin: pin }]);
-        if (error) throw error;
+        // 检查是否成功生成唯一 PIN
+        if (attempts >= MAX_ATTEMPTS) {
+            err.textContent = 'Failed to generate unique PIN. Please try again.';
+            err.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = 'Register & Get PIN';
+            return;
+        }
+
+        // 插入注册记录
+        const { error: insertError } = await sb
+            .from('registrations')
+            .insert([{ 
+                property_id: selectedPropertyId, 
+                full_name: name, 
+                pin: pin 
+            }]);
+        
+        if (insertError) {
+            // 处理唯一约束冲突
+            if (insertError.code === '23505') {
+                err.textContent = 'PIN conflict detected. Please try again.';
+            } else {
+                throw insertError;
+            }
+            err.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = 'Register & Get PIN';
+            return;
+        }
+        
         showSuccess(name, pin);
+        
     } catch (e) {
+        console.error('Registration error:', e);
         err.textContent = 'Registration failed: ' + e.message;
         err.style.display = 'block';
         btn.disabled = false;
