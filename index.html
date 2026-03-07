@@ -238,11 +238,17 @@
         <h1>🔨 KL Property Auction Live</h1>
         <div id="userInputSection">
             <div class="input-group">
-                <input type="text" id="userNameInput" placeholder="输入你的名字..." autocomplete="off" />
-                <button onclick="joinAuction()">加入竞拍</button>
+                <input type="text" id="userNameInput" placeholder="Full Name..." 
+                    autocomplete="off" style="flex:1.5" />
+                <input type="text" id="userPinInput" placeholder="PIN..." 
+                    autocomplete="off" maxlength="4" pattern="[0-9]*" inputmode="numeric"
+                    style="flex:0.6; text-align:center; letter-spacing:0.2em; font-weight:700;"
+                    onkeydown="if(event.key==='Enter') joinAuction()" />
+                <button onclick="joinAuction()">Join</button>
             </div>
+            <div id="pinError" style="color:#fca5a5;font-size:0.85rem;margin-top:8px;display:none;"></div>
         </div>
-        <div id="welcomeText" class="hidden">欢迎, <span id="displayName"></span> 👋 | 参与人数: <span id="participantCount">0</span>/12</div>
+        <div id="welcomeText" class="hidden">Welcome, <span id="displayName"></span> 👋 | Participants: <span id="participantCount">0</span>/12</div>
     </div>
 
     <div id="mainContent" class="hidden">
@@ -341,7 +347,7 @@ const propertyInfo = {
         image: '🏰', 
         imageUrl: 'TTDI.png',
         openingBid: 688500, 
-        increment: 2000, 
+        increment: 5000, 
         description: '高端住宅区',
         area: '1496 sq.ft',
         marketValue: 950000
@@ -351,7 +357,7 @@ const propertyInfo = {
         image: '🏘️', 
         imageUrl: 'cheras.png',
         openingBid: 486000, 
-        increment: 2000, 
+        increment: 3000, 
         description: '城市便利住宅',
         area: '1302 sq.ft',
         marketValue: 650000
@@ -361,7 +367,7 @@ const propertyInfo = {
         image: '🌳', 
         imageUrl: 'subangmurni.png',
         openingBid: 445000, 
-        increment: 2000, 
+        increment: 3000, 
         description: '成熟的社区',
         area: '1650 sq.ft',
         marketValue: 600000
@@ -376,77 +382,109 @@ let soldAlreadyShown = false;
 let lastTeacherOpenNotified = null;
 let hasJoinedCurrentProperty = false;
 
+const SYSTEM_PIN = '0000'; // 系统账号：可观看所有房产，不能出价
+let isSystemAccount = false;
+let userPropertyId = null; // 注册的房产ID
+
 async function joinAuction(){
-    const tempName = document.getElementById('userNameInput').value.trim();
-    if(!tempName) return alert('请输入你的名字');
-    
-    // 先刷新一次数据，确保 currentPropertyObj 是最新的
+    const pin = document.getElementById('userPinInput').value.trim();
+    const nameInput = document.getElementById('userNameInput').value.trim();
+    const pinErr = document.getElementById('pinError');
+    pinErr.style.display = 'none';
+
+    if (!nameInput) { pinErr.textContent = 'Please enter your full name.'; pinErr.style.display = 'block'; return; }
+    if (!pin) { pinErr.textContent = 'Please enter your PIN.'; pinErr.style.display = 'block'; return; }
+    if (pin.length !== 4) { pinErr.textContent = 'PIN must be 4 digits.'; pinErr.style.display = 'block'; return; }
+
+    // 先刷新数据
     await loadData();
 
-    if (!currentPropertyObj) {
-        alert('请等待房产加载...');
+    // 系统账号
+    if (pin === SYSTEM_PIN && nameInput.toUpperCase() === 'SYSTEM') {
+        isSystemAccount = true;
+        userName = 'SYSTEM';
+        userPropertyId = null;
+        hasJoinedCurrentProperty = true;
+        proceedToAuction();
         return;
     }
 
-    if (currentPropertyObj.status === 'sold') {
-        alert('❌ 此房产已成交，请等待老师开放下一个房产！');
+    // 查找 PIN + 验证名字（不区分大小写）
+    const { data: reg, error: regErr } = await sb
+        .from('registrations')
+        .select('*')
+        .eq('pin', pin)
+        .single();
+
+    if (regErr || !reg) {
+        pinErr.textContent = 'Invalid PIN. Please check and try again.';
+        pinErr.style.display = 'block';
         return;
     }
 
-    userName = tempName;
-    
+    // 验证名字是否匹配
+    if (reg.full_name.toLowerCase() !== nameInput.toLowerCase()) {
+        pinErr.textContent = 'Name does not match this PIN. Please check your details.';
+        pinErr.style.display = 'block';
+        return;
+    }
+
+    // 登录成功，设置用户信息
+    userName = reg.full_name;
+    userPropertyId = reg.property_id;
+
+    // 不管注册的是哪个房产，都跟随当前正在竞拍的房产
+    // canBid 只有当 userPropertyId === currentProperty 时才为 true
     try {
-        // 先检查名字是否已经在参与者列表里
+        // 检查是否已在当前房产的 participants
         const { data: existing } = await sb
             .from('participants')
             .select('id')
-            .eq('property_id', currentProperty)
+            .eq('property_id', userPropertyId)
             .eq('participant_name', userName)
             .single();
 
         if (existing) {
-            // 名字已在列表，直接放行
             hasJoinedCurrentProperty = true;
             proceedToAuction();
             return;
         }
 
-        // 名字不在，尝试新加入
-        const { data, error } = await sb
+        // 新加入（只在自己注册的房产里加入participants）
+        const { error } = await sb
             .from('participants')
-            .insert([{ property_id: currentProperty, participant_name: userName, is_active: true }])
-            .select()
-            .single();
-        
+            .insert([{ property_id: userPropertyId, participant_name: userName, is_active: true }]);
+
         if (error) {
             if (error.message.includes('房间已满')) {
-                userName = '';
-                alert(`房间已满！最多只能有 ${MAX_PARTICIPANTS} 人参与此拍卖。`);
+                userName = ''; userPropertyId = null;
+                pinErr.textContent = 'This auction room is full (12/12).';
+                pinErr.style.display = 'block';
             } else if (error.code === '23505') {
                 hasJoinedCurrentProperty = true;
                 proceedToAuction();
             } else {
-                userName = '';
-                console.error('加入失败:', error);
-                alert('加入失败：' + error.message);
+                userName = ''; userPropertyId = null;
+                pinErr.textContent = 'Failed to join: ' + error.message;
+                pinErr.style.display = 'block';
             }
             return;
         }
-        
+
         hasJoinedCurrentProperty = true;
         proceedToAuction();
-        
+
     } catch (err) {
-        userName = '';
-        console.error('加入房间错误:', err);
-        alert('加入失败，请重试！');
+        userName = ''; userPropertyId = null;
+        pinErr.textContent = 'Error joining auction. Please try again.';
+        pinErr.style.display = 'block';
     }
 }
 
 function proceedToAuction() {
     document.getElementById('userInputSection').classList.add('hidden');
     document.getElementById('welcomeText').classList.remove('hidden');
-    document.getElementById('displayName').textContent = userName;
+    document.getElementById('displayName').textContent = isSystemAccount ? 'System (Observer)' : userName;
     document.getElementById('mainContent').classList.remove('hidden');
 
     sb.channel('properties-changes')
@@ -505,11 +543,14 @@ async function loadData(){
                 soldAlreadyShown = false;
                 hasJoinedCurrentProperty = false;
                 userName = '';
+                isSystemAccount = false;
+                userPropertyId = null;
                 document.getElementById('soldOverlay').classList.remove('active');
                 document.getElementById('mainContent').classList.add('hidden');
                 document.getElementById('welcomeText').classList.add('hidden');
                 document.getElementById('userInputSection').classList.remove('hidden');
                 document.getElementById('userNameInput').value = '';
+                document.getElementById('userPinInput').value = '';
             }
         } else if (!biddingNow && firstOpen && firstOpen.id !== currentProperty) {
             // 没有正在竞标的房产，静默切换到第一个open房产（新用户进来用）
@@ -797,7 +838,12 @@ function updateDisplay() {
     const waitingNotice = document.getElementById('waitingNotice');
     const bidBtn = document.getElementById('bidBtn');
 
-    const canBid = currentPropertyObj.bidding_started && currentPropertyObj.status !== 'sold' && hasJoinedCurrentProperty;
+    const isRegisteredForCurrent = (userPropertyId === currentProperty);
+    const canBid = currentPropertyObj.bidding_started && 
+                   currentPropertyObj.status !== 'sold' && 
+                   hasJoinedCurrentProperty &&
+                   !isSystemAccount &&
+                   isRegisteredForCurrent;
     
     if (!currentPropertyObj.bidding_started && currentPropertyObj.status === 'open') {
         waitingNotice.classList.remove('hidden');
@@ -805,6 +851,15 @@ function updateDisplay() {
     } else {
         waitingNotice.classList.add('hidden');
         bidBtn.disabled = !canBid;
+        if (isSystemAccount || !isRegisteredForCurrent) {
+            bidBtn.textContent = '👁️ Observer — Cannot Bid';
+            bidBtn.style.background = 'rgba(100,116,139,0.3)';
+        } else if (!currentPropertyObj.bidding_started) {
+            bidBtn.textContent = '⏳ Waiting for bidding to start...';
+            bidBtn.style.background = '';
+        } else {
+            bidBtn.style.background = '';
+        }
     }
 
     const callingDiv = document.getElementById('callingStatusDiv');
@@ -865,7 +920,7 @@ function updateParticipants() {
     document.getElementById('participantCount').textContent = count;
 }
 
-document.getElementById('userNameInput').addEventListener('keypress', e => { 
+document.getElementById('userPinInput').addEventListener('keypress', e => { 
     if (e.key === 'Enter') joinAuction(); 
 });
 
