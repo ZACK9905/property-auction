@@ -1,639 +1,464 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>KL Property Auction - Teacher Control Panel</title>
+    <title>KL Property Auction — Teacher Panel</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%);
-            color: white;
-            min-height: 100vh;
-            padding: 20px;
+        :root {
+            --bg: #0a0f1e;
+            --card: rgba(255,255,255,0.04);
+            --border: rgba(255,255,255,0.08);
+            --orange: #f97316;
+            --green: #22c55e;
+            --blue: #3b82f6;
+            --red: #ef4444;
+            --gold: #fbbf24;
+            --text: #e2e8f0;
+            --muted: #64748b;
         }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header { 
-            text-align: center; 
-            padding: 30px 0; 
-            border-bottom: 2px solid rgba(249, 115, 22, 0.5); 
-            margin-bottom: 40px;
-        }
-        .header h1 { 
-            font-size: 2.2rem; 
-            background: linear-gradient(90deg, #f97316 0%, #dc2626 100%); 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-            margin-bottom: 8px;
-        }
-        .header p { color: #fbbf24; font-size: 1rem; }
-        .controls-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
-            gap: 20px; 
-            margin-bottom: 40px; 
-        }
-        .control-card { 
-            background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(30, 99, 145, 0.4)); 
-            border: 2px solid rgba(249, 115, 22, 0.3); 
-            border-radius: 15px; 
-            padding: 20px;
-        }
-        .control-card h3 { 
-            font-size: 1.2rem; 
-            margin-bottom: 12px; 
-            color: #f97316;
-        }
-        .property-selector label { 
-            display: block; 
-            color: #93c5fd; 
-            margin-bottom: 8px; 
-            font-weight: 600; 
-        }
-        .property-selector select { 
-            width: 100%; 
-            padding: 10px; 
-            background: rgba(30, 58, 138, 0.5); 
-            border: 1px solid rgba(249, 115, 22, 0.5); 
-            border-radius: 8px; 
-            color: white; 
-            font-size: 1rem;
-        }
-        button { 
-            padding: 10px 18px; 
-            background: linear-gradient(90deg, #f97316 0%, #dc2626 100%); 
-            border: none; 
-            border-radius: 8px; 
-            color: white; 
-            font-weight: 600; 
-            cursor: pointer; 
-            transition: all 0.25s; 
-            margin: 6px 6px 0 0;
-        }
-        button:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 0 20px rgba(249, 115, 22, 0.4); 
-        }
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .btn-success { background: linear-gradient(90deg, #10b981 0%, #059669 100%); }
-        .btn-start { background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%); font-size: 1.1rem; padding: 14px 24px; }
-        .btn-release { background: linear-gradient(90deg, #06b6d4 0%, #0891b2 100%); }
-        .btn-auto { background: linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%); }
-        .status-display { 
-            background: rgba(15, 23, 42, 0.6); 
-            border: 1px solid rgba(249, 115, 22, 0.3); 
-            border-radius: 10px; 
-            padding: 16px; 
-            margin-bottom: 12px;
-        }
-        .status-row { 
-            display: flex; 
-            justify-content: space-between; 
-            padding: 8px 0; 
-            border-bottom: 1px solid rgba(249, 115, 22, 0.12);
-        }
-        .status-label { color: #93c5fd; font-weight: 600; }
-        .status-value { color: #fbbf24; font-weight: bold; }
-        .properties-list { 
-            background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(30, 99, 145, 0.4)); 
-            border: 2px solid rgba(249, 115, 22, 0.3); 
-            border-radius: 15px; 
-            padding: 20px; 
-        }
-        .property-row { 
-            display: grid; 
-            grid-template-columns: 2fr 1fr 1fr 1fr 1fr; 
-            gap: 12px; 
-            padding: 12px; 
-            background: rgba(15, 23, 42, 0.6); 
-            border: 1px solid rgba(249, 115, 22, 0.08); 
-            border-radius: 8px; 
-            margin-bottom: 10px; 
-            align-items: center;
-        }
-        .property-name { font-weight: 600; color: #a5f3fc; }
-        .property-status { 
-            padding: 6px 10px; 
-            border-radius: 6px; 
-            text-align: center; 
-            font-weight: 600;
-        }
-        .status-open { background: rgba(34, 197, 94, 0.18); color: #86efac; }
-        .status-sold { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
-        .hidden { display: none; }
-        .message { 
-            padding: 12px; 
-            background: rgba(34, 197, 94, 0.12); 
-            border: 1px solid rgba(34, 197, 94, 0.2); 
-            border-radius: 8px; 
-            color: #86efac; 
-            text-align: center; 
-            font-weight: 600; 
-            margin-bottom: 10px;
-        }
-        .error-message { 
-            background: rgba(239, 68, 68, 0.12); 
-            border: 1px solid rgba(239, 68, 68, 0.2); 
-            color: #fca5a5; 
-        }
-        .auto-mode-indicator {
-            padding: 8px 12px;
-            background: rgba(139, 92, 246, 0.2);
-            border: 1px solid rgba(139, 92, 246, 0.4);
-            border-radius: 6px;
-            color: #c4b5fd;
-            font-weight: 600;
-            display: inline-block;
-            margin-top: 8px;
-        }
-        .silent-countdown-indicator {
-            padding: 8px 12px;
-            background: rgba(34, 197, 94, 0.2);
-            border: 1px solid rgba(34, 197, 94, 0.4);
-            border-radius: 6px;
-            color: #86efac;
-            font-weight: 600;
-            margin-top: 8px;
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding:24px; }
+        body::before { content:''; position:fixed; inset:0; background:radial-gradient(ellipse 70% 50% at 30% 0%,rgba(249,115,22,.07) 0%,transparent 60%),radial-gradient(ellipse 50% 60% at 80% 80%,rgba(59,130,246,.05) 0%,transparent 60%); pointer-events:none; }
+        .container { max-width:1100px; margin:0 auto; position:relative; }
+        .header { display:flex; align-items:center; justify-content:space-between; padding-bottom:20px; border-bottom:1px solid var(--border); margin-bottom:28px; }
+        .header-left h1 { font-size:1.5rem; font-weight:700; color:white; }
+        .header-left p { color:var(--muted); font-size:.85rem; margin-top:3px; }
+        .live-badge { display:flex; align-items:center; gap:8px; background:rgba(239,68,68,.15); border:1px solid rgba(239,68,68,.3); padding:6px 14px; border-radius:100px; font-size:.8rem; font-weight:600; color:#fca5a5; }
+        .live-dot { width:8px; height:8px; background:#ef4444; border-radius:50%; animation:pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+        #messageBox { padding:12px 16px; border-radius:10px; font-weight:500; font-size:.9rem; margin-bottom:20px; text-align:center; }
+        #messageBox.success { background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.3); color:#86efac; }
+        #messageBox.error { background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.3); color:#fca5a5; }
+        .hidden { display:none !important; }
+        .main-grid { display:grid; grid-template-columns:1fr 340px; gap:20px; margin-bottom:20px; }
+        .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; }
+        .card-title { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); margin-bottom:16px; }
+        .prop-select { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+        .prop-select select { flex:1; padding:11px 14px; background:rgba(255,255,255,.05); border:1px solid var(--border); border-radius:10px; color:white; font-family:'DM Sans',sans-serif; font-size:.95rem; outline:none; cursor:pointer; }
+        .prop-select select:focus { border-color:rgba(249,115,22,.5); }
+        .status-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px; }
+        .stat-box { background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+        .stat-label { font-size:.72rem; color:var(--muted); margin-bottom:5px; font-weight:500; text-transform:uppercase; letter-spacing:.08em; }
+        .stat-value { font-size:1.05rem; font-weight:700; color:white; }
+        .stat-value.gold { color:var(--gold); }
+        .stat-value.green { color:#86efac; }
+        .stat-value.red { color:#fca5a5; }
+        .stat-value.orange { color:#fdba74; }
+        .bid-display { background:rgba(249,115,22,.08); border:1px solid rgba(249,115,22,.2); border-radius:12px; padding:16px 20px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; }
+        .bid-display-label { font-size:.8rem; color:var(--muted); margin-bottom:4px; }
+        .bid-display-amount { font-size:1.8rem; font-weight:700; color:var(--gold); }
+        .bid-display-bidder { font-size:.9rem; color:#a5f3fc; font-weight:500; }
+        .action-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+        .btn { padding:12px 16px; border:none; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:.9rem; font-weight:600; cursor:pointer; transition:all .2s; display:flex; align-items:center; justify-content:center; gap:6px; }
+        .btn:hover { filter:brightness(1.15); transform:translateY(-1px); }
+        .btn:active { transform:translateY(0); }
+        .btn:disabled { opacity:.4; cursor:not-allowed; transform:none; filter:none; }
+        .btn-start { grid-column:1 / -1; padding:16px; font-size:1.05rem; background:linear-gradient(135deg,#16a34a,#15803d); color:white; }
+        .btn-start:disabled { background:rgba(100,116,139,.3); color:#94a3b8; }
+        .btn-next { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:white; }
+        .btn-sold { background:linear-gradient(135deg,#dc2626,#b91c1c); color:white; }
+        .btn-reset { grid-column:1 / -1; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.2); color:#fca5a5; }
+        .btn-reset:hover { background:rgba(239,68,68,.18); filter:none; transform:none; }
+        .stage-bar { display:flex; gap:6px; margin-bottom:20px; }
+        .stage-item { flex:1; padding:8px; border-radius:8px; text-align:center; font-size:.72rem; font-weight:600; background:rgba(255,255,255,.04); border:1px solid var(--border); color:var(--muted); transition:all .3s; }
+        .stage-item.active { background:rgba(249,115,22,.15); border-color:rgba(249,115,22,.4); color:#fdba74; }
+        .stage-item.done { background:rgba(34,197,94,.1); border-color:rgba(34,197,94,.2); color:#86efac; }
+        .auto-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(139,92,246,.15); border:1px solid rgba(139,92,246,.3); border-radius:8px; padding:8px 12px; font-size:.82rem; color:#c4b5fd; font-weight:600; width:100%; margin-bottom:10px; }
+        .auto-dot { width:8px; height:8px; background:#a855f7; border-radius:50%; animation:pulse 1s infinite; }
+        .prop-list { display:flex; flex-direction:column; gap:8px; }
+        .prop-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; background:rgba(255,255,255,.03); border:1px solid var(--border); transition:border-color .2s; cursor:pointer; }
+        .prop-row.active-prop { border-color:rgba(249,115,22,.4); background:rgba(249,115,22,.06); }
+        .prop-row.sold-prop { opacity:.5; }
+        .prop-num { width:28px; height:28px; border-radius:6px; background:rgba(255,255,255,.06); display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; color:var(--muted); flex-shrink:0; }
+        .prop-row.active-prop .prop-num { background:rgba(249,115,22,.2); color:#fdba74; }
+        .prop-info { flex:1; min-width:0; }
+        .prop-name { font-size:.82rem; font-weight:600; color:white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .prop-price { font-size:.75rem; color:var(--muted); margin-top:2px; }
+        .prop-badge { font-size:.7rem; font-weight:700; padding:3px 8px; border-radius:100px; flex-shrink:0; }
+        .badge-open { background:rgba(34,197,94,.15); color:#86efac; border:1px solid rgba(34,197,94,.25); }
+        .badge-sold { background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.25); }
+        .badge-live { background:rgba(249,115,22,.2); color:#fdba74; border:1px solid rgba(249,115,22,.4); animation:pulse 1.5s infinite; }
+        .bottom-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+        .reg-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+        .reg-table th { padding:8px 10px; color:var(--muted); text-align:left; border-bottom:1px solid var(--border); font-weight:600; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; }
+        .reg-table td { padding:9px 10px; border-bottom:1px solid rgba(255,255,255,.04); }
+        .reg-table tr:last-child td { border-bottom:none; }
+        .pin-chip { background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.25); border-radius:6px; padding:2px 8px; color:var(--gold); font-family:'DM Mono',monospace; font-weight:500; letter-spacing:.12em; font-size:.9rem; }
+        .btn-remove { background:none; border:none; color:var(--muted); cursor:pointer; font-size:.75rem; padding:2px 6px; border-radius:4px; transition:all .2s; }
+        .btn-remove:hover { color:#fca5a5; background:rgba(239,68,68,.1); }
+        .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+        .section-title { font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+        .btn-sm { padding:5px 12px; border-radius:6px; font-size:.75rem; font-weight:600; cursor:pointer; transition:all .15s; border:none; font-family:'DM Sans',sans-serif; }
+        .btn-sm-blue { background:rgba(59,130,246,.15); border:1px solid rgba(59,130,246,.25); color:#93c5fd; }
+        .btn-sm-red { background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.2); color:#fca5a5; }
+        .btn-sm:hover { filter:brightness(1.2); }
+        .bid-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+        .bid-row:last-child { border-bottom:none; }
+        .bid-name { font-size:.85rem; font-weight:500; }
+        .bid-amount { font-size:.85rem; font-weight:700; color:var(--gold); font-family:'DM Mono',monospace; }
+        .bid-time { font-size:.72rem; color:var(--muted); }
+        @media(max-width:900px) { .main-grid,.bottom-grid{grid-template-columns:1fr} .status-grid{grid-template-columns:1fr 1fr} }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🔨 拍卖会控制面板</h1>
-            <p>⚙️ 教师控制：按 START 开启竞标 + 自动倒数</p>
+<div class="container">
+    <div class="header">
+        <div class="header-left">
+            <h1>🔨 Teacher Control Panel</h1>
+            <p>KL Property Auction Live — Instructor Dashboard</p>
         </div>
+        <div class="live-badge"><div class="live-dot"></div> LIVE</div>
+    </div>
 
-        <div id="messageBox" class="hidden"></div>
+    <div id="messageBox" class="hidden"></div>
 
-        <div class="controls-grid">
-            <div class="control-card">
-                <h3>📍 当前房产</h3>
-                <div class="property-selector">
-                    <label>选择房产:</label>
-                    <select id="propertySelect" onchange="switchProperty()">
-                        <option value="1">房产 1 - Taman Puteri Subang 🏠</option>
-                        <option value="2">房产 2 - Setia Alam 🏡</option>
-                        <option value="3">房产 3 - Taman TTDI Shah Alam 🏰</option>
-                        <option value="4">房产 4 - Bandar Mahkota Cheras 🏘️</option>
-                        <option value="5">房产 5 - Taman Subang Murni 🌳</option>
-                    </select>
-                </div>
-
-                <div class="status-display">
-                    <div class="status-row">
-                        <span class="status-label">状态:</span>
-                        <span class="status-value" id="currentStatus">加载中...</span>
-                    </div>
-                    <div class="status-row">
-                        <span class="status-label">竞标状态:</span>
-                        <span class="status-value" id="biddingStatus">未开始</span>
-                    </div>
-                    <div class="status-row">
-                        <span class="status-label">当前出价:</span>
-                        <span class="status-value" id="currentBid">-</span>
-                    </div>
-                    <div class="status-row">
-                        <span class="status-label">最高竞价者:</span>
-                        <span class="status-value" id="currentBidder">-</span>
-                    </div>
-                    <div class="status-row">
-                        <span class="status-label">Calling 阶段:</span>
-                        <span class="status-value" id="currentStage">-</span>
-                    </div>
-                    <div class="status-row">
-                        <span class="status-label">参与人数:</span>
-                        <span class="status-value" id="participantCount">0/12</span>
-                    </div>
-                </div>
-
-                <button id="startBiddingBtn" class="btn-start" onclick="startBidding()">🟢 START 竞标</button>
-                <div id="silentCountdownIndicator" class="silent-countdown-indicator hidden">
-                    ⏱️ 静默倒数: <span id="silentCountdownDisplay">10</span> 秒
-                </div>
-
-                <button class="btn-success" onclick="resetCurrentProperty()">🔄 重置本房产</button>
-                <button onclick="markSoldOnly()">🏷️ 標為成交</button>
+    <div class="main-grid">
+        <div class="card">
+            <div class="card-title">Current Property</div>
+            <div class="prop-select">
+                <select id="propertySelect" onchange="switchProperty()">
+                    <option value="1">Property 1 — Taman Puteri Subang</option>
+                    <option value="2">Property 2 — Setia Alam</option>
+                    <option value="3">Property 3 — Taman TTDI Shah Alam</option>
+                    <option value="4">Property 4 — Bandar Mahkota Cheras</option>
+                    <option value="5">Property 5 — Taman Subang Murni</option>
+                </select>
             </div>
-
-            <div class="control-card">
-                <h3>⚡ 手動操作</h3>
-                <button onclick="startCalling()">🔨 開始 Calling (1st)</button>
-                <button onclick="secondCalling()">🔨 進入 2nd Calling</button>
-                <button onclick="thirdCalling()">🔨 進入 3rd Calling</button>
-                <button onclick="forceSold()">✓ 強制成交</button>
-                <button class="btn-release" onclick="openNextProperty()">➡️ 手動打開下一件</button>
+            <div class="stage-bar">
+                <div class="stage-item" id="stageWait">Waiting</div>
+                <div class="stage-item" id="stage1st">1st Calling</div>
+                <div class="stage-item" id="stage2nd">2nd Calling</div>
+                <div class="stage-item" id="stage3rd">3rd Calling</div>
+                <div class="stage-item" id="stageSold">SOLD</div>
             </div>
-
-            <div class="control-card">
-                <h3>🤖 完整自動模式</h3>
-                <button class="btn-auto" onclick="startFullAutoMode()">▶️ 完整自動 (START → 靜默 → 1st → 2nd → 3rd → Sold)</button>
-                <button onclick="stopAutoMode()">⏹️ 停止自動模式</button>
-                <div id="autoModeStatus" class="hidden auto-mode-indicator">
-                    🟢 自動模式運行中...
+            <div class="bid-display">
+                <div>
+                    <div class="bid-display-label">Current Bid</div>
+                    <div class="bid-display-amount" id="currentBid">RM —</div>
+                    <div class="bid-display-bidder" id="currentBidder">Waiting for bids...</div>
                 </div>
-                <p style="color:#93c5fd;font-size:0.85rem;margin-top:8px;">
-                    靜默10秒 → 1st:10秒 → 2nd:10秒 → 3rd:5秒 → 自動成交
-                </p>
+                <div style="text-align:right">
+                    <div class="bid-display-label">Participants</div>
+                    <div class="bid-display-amount" style="font-size:1.3rem" id="participantCount">0/12</div>
+                    <div class="bid-display-bidder" id="totalBids">0 bids</div>
+                </div>
             </div>
-
-            <div class="control-card">
-                <h3>📊 统计信息</h3>
-                <div class="status-display">
-                    <div class="status-row">
-                        <span class="status-label">竞价者数:</span>
-                        <span class="status-value" id="bidderCount">0</span>
-                    </div>
-                    <div class="status-row">
-                        <span class="status-label">竞价次数:</span>
-                        <span class="status-value" id="bidCount">0</span>
-                    </div>
-                    <div class="status-row">
-                        <span class="status-label">已成交房产:</span>
-                        <span class="status-value" id="soldCount">0/5</span>
-                    </div>
-                </div>
+            <div class="status-grid">
+                <div class="stat-box"><div class="stat-label">Status</div><div class="stat-value" id="currentStatus">—</div></div>
+                <div class="stat-box"><div class="stat-label">Stage Timer</div><div class="stat-value gold" id="currentTimer">—</div></div>
+                <div class="stat-box"><div class="stat-label">Sold</div><div class="stat-value orange" id="soldCount">0/5</div></div>
+            </div>
+            <div id="autoModeBadge" class="auto-badge hidden">
+                <div class="auto-dot"></div> Auto mode running... <span id="autoModeDetail"></span>
+            </div>
+            <div class="action-row">
+                <button class="btn btn-start" id="startBiddingBtn" onclick="startBidding()">▶ START Bidding</button>
+            </div>
+            <div class="action-row">
+                <button class="btn btn-next" onclick="openNextProperty()">➡ Next Property</button>
+                <button class="btn btn-sold" onclick="forceSold()">✓ Force Sold</button>
+            </div>
+            <div class="action-row">
+                <button class="btn btn-reset" onclick="resetAllProperties()">🔄 Reset ALL Properties</button>
             </div>
         </div>
 
-        <div class="properties-list">
-            <h2>📋 所有房产总览</h2>
-            <div id="propertiesList" style="text-align: center; color: #93c5fd;">加载中...</div>
+        <div class="card">
+            <div class="card-title">All Properties</div>
+            <div class="prop-list" id="propList">Loading...</div>
         </div>
     </div>
 
-    <script>
-        const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
-        const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzkzMzc0MSwiZXhwIjoyMDgzNTA5NzQxfQ.EWmE8zCzdIUln73QZeZVppGgLqUvPMiGyWI3yN0jI0M';
+    <div class="bottom-grid">
+        <div class="card">
+            <div class="section-header">
+                <div class="section-title">Bid History — Current Property</div>
+                <button class="btn-sm btn-sm-blue" onclick="loadBidHistory()">↻ Refresh</button>
+            </div>
+            <div id="bidHistory" style="color:var(--muted);font-size:.85rem;text-align:center;padding:20px 0">Loading...</div>
+        </div>
+        <div class="card">
+            <div class="section-header">
+                <div class="section-title">Registration List</div>
+                <div style="display:flex;gap:6px">
+                    <button class="btn-sm btn-sm-blue" onclick="loadRegistrations()">↻ Refresh</button>
+                    <button class="btn-sm btn-sm-red" onclick="clearAllRegistrations()">Clear All</button>
+                </div>
+            </div>
+            <div id="registrationList" style="color:var(--muted);font-size:.85rem;text-align:center;padding:20px 0">Loading...</div>
+        </div>
+    </div>
+</div>
 
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+<script>
+const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzkzMzc0MSwiZXhwIjoyMDgzNTA5NzQxfQ.EWmE8zCzdIUln73QZeZVppGgLqUvPMiGyWI3yN0jI0M';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-        let selectedProperty = 1;
-        let allProperties = {};
-        let autoModeInterval = null;
+let selectedProperty = 1;
+let allProperties = {};
+let autoModeInterval = null;
 
-        const openingBids = {
-            1: 450000,
-            2: 550000,
-            3: 688500,
-            4: 486000,
-            5: 445000
-        };
+const openingBids = { 1:450000, 2:550000, 3:688500, 4:486000, 5:445000 };
+const propNames = { 1:'Taman Puteri Subang', 2:'Setia Alam', 3:'Taman TTDI Shah Alam', 4:'Bandar Mahkota Cheras', 5:'Taman Subang Murni' };
 
-        const propertyNames = {
-            1: 'Taman Puteri Subang 🏠',
-            2: 'Setia Alam 🏡',
-            3: 'Taman TTDI Shah Alam 🏰',
-            4: 'Bandar Mahkota Cheras 🏘️',
-            5: 'Taman Subang Murni 🌳'
-        };
-
-        async function loadData() {
-            try {
-                const { data, error } = await sb.from('properties').select('*').order('id');
-                if (error) {
-                    showMessage('❌ 加载失败: ' + error.message, true);
-                    return;
-                }
-                if (data && data.length > 0) {
-                    allProperties = {};
-                    data.forEach(p => allProperties[p.id] = p);
-                    if (!allProperties[selectedProperty]) {
-                        const ids = Object.keys(allProperties).map(x=>parseInt(x,10)).sort((a,b)=>a-b);
-                        selectedProperty = ids.length ? ids[0] : selectedProperty;
-                    }
-                    updateDisplay();
-                }
-            } catch (err) {
-                console.error('加载错误:', err);
-                showMessage('❌ 连接失败: ' + (err.message || err), true);
-            }
-        }
-
-        function switchProperty() {
-            selectedProperty = parseInt(document.getElementById('propertySelect').value);
+async function loadData() {
+    try {
+        const { data, error } = await sb.from('properties').select('*').order('id');
+        if (error) { showMessage('Load failed: ' + error.message, true); return; }
+        if (data && data.length > 0) {
+            allProperties = {};
+            data.forEach(p => allProperties[p.id] = p);
             updateDisplay();
         }
+    } catch (err) { showMessage('Connection error: ' + err.message, true); }
+}
 
-        async function resetCurrentProperty() {
-            if (!confirm('确定要重置房产 ' + selectedProperty + ' 吗？所有竞价记录将被清空！')) return;
-            try {
-                const openingBid = openingBids[selectedProperty];
-                
-                const { error: deleteError } = await sb.from('bidders').delete().eq('property_id', selectedProperty);
-                if (deleteError) {
-                    showMessage('❌ 删除竞价记录失败: ' + deleteError.message, true);
-                    return;
-                }
+function switchProperty() {
+    selectedProperty = parseInt(document.getElementById('propertySelect').value);
+    updateDisplay();
+    loadBidHistory();
+}
 
-                const { error: deleteParticipantsError } = await sb.from('participants').delete().eq('property_id', selectedProperty);
-                if (deleteParticipantsError) {
-                    showMessage('❌ 删除参与者记录失败: ' + deleteParticipantsError.message, true);
-                    return;
-                }
+function updateDisplay() {
+    const prop = allProperties[selectedProperty];
+    if (!prop) return;
+    document.getElementById('propertySelect').value = String(selectedProperty);
+    document.getElementById('currentBid').textContent = 'RM ' + Number(prop.current_price||0).toLocaleString();
+    document.getElementById('currentBidder').textContent = prop.highest_bidder || 'Waiting for bids...';
+    document.getElementById('participantCount').textContent = (prop.participant_count||0) + '/12';
 
-                const { error: updateError } = await sb.from('properties').update({
-                    current_price: openingBid,
-                    highest_bidder: null,
-                    stage: 0,
-                    timer: 0,
-                    status: 'open',
-                    bidding_started: false,
-                    silent_countdown: 0,
-                    release_next: false,
-                    release_by: null,
-                    release_at: null,
-                    sold_at: null,
-                    opened_by_teacher: false
-                }).eq('id', selectedProperty);
+    const statusEl = document.getElementById('currentStatus');
+    if (prop.status === 'sold') { statusEl.textContent = 'SOLD'; statusEl.className = 'stat-value red'; }
+    else if (prop.bidding_started) { statusEl.textContent = 'LIVE'; statusEl.className = 'stat-value green'; }
+    else { statusEl.textContent = 'Waiting'; statusEl.className = 'stat-value'; }
 
-                if (updateError) {
-                    showMessage('❌ 更新房产失败: ' + updateError.message, true);
-                    return;
-                }
+    const timerEl = document.getElementById('currentTimer');
+    if (prop.silent_countdown > 0) timerEl.textContent = 'Silent ' + prop.silent_countdown + 's';
+    else if (prop.stage > 0 && prop.timer > 0) timerEl.textContent = prop.timer + 's';
+    else timerEl.textContent = '—';
 
-                showMessage('✓ 房产已重置！');
-                await loadData();
-            } catch (err) {
-                showMessage('❌ 重置失败: ' + err.message, true);
-            }
+    // Stage bar
+    ['stageWait','stage1st','stage2nd','stage3rd','stageSold'].forEach(s => document.getElementById(s).className = 'stage-item');
+    if (prop.status === 'sold') {
+        document.getElementById('stageSold').className = 'stage-item active';
+        ['stageWait','stage1st','stage2nd','stage3rd'].forEach(s => document.getElementById(s).className = 'stage-item done');
+    } else if (prop.stage === 3) {
+        document.getElementById('stage3rd').className = 'stage-item active';
+        ['stageWait','stage1st','stage2nd'].forEach(s => document.getElementById(s).className = 'stage-item done');
+    } else if (prop.stage === 2) {
+        document.getElementById('stage2nd').className = 'stage-item active';
+        ['stageWait','stage1st'].forEach(s => document.getElementById(s).className = 'stage-item done');
+    } else if (prop.stage === 1) {
+        document.getElementById('stage1st').className = 'stage-item active';
+        document.getElementById('stageWait').className = 'stage-item done';
+    } else {
+        document.getElementById('stageWait').className = 'stage-item active';
+    }
+
+    const startBtn = document.getElementById('startBiddingBtn');
+    startBtn.disabled = prop.status === 'sold' || prop.bidding_started;
+    startBtn.textContent = prop.bidding_started ? '✅ Bidding Started' : '▶ START Bidding';
+
+    const soldCount = Object.values(allProperties).filter(p => p.status === 'sold').length;
+    document.getElementById('soldCount').textContent = soldCount + '/5';
+
+    renderPropList();
+}
+
+function renderPropList() {
+    const el = document.getElementById('propList');
+    el.innerHTML = Object.entries(allProperties)
+        .sort((a,b) => parseInt(a[0]) - parseInt(b[0]))
+        .map(([id, prop]) => {
+            const isSelected = parseInt(id) === selectedProperty;
+            const isSold = prop.status === 'sold';
+            const isLive = prop.bidding_started && !isSold;
+            const badgeClass = isSold ? 'badge-sold' : isLive ? 'badge-live' : 'badge-open';
+            const badgeText = isSold ? 'SOLD' : isLive ? 'LIVE' : 'Open';
+            return '<div class="prop-row ' + (isSelected?'active-prop ':'') + (isSold?'sold-prop':'') + '" onclick="selectProp(' + id + ')">' +
+                '<div class="prop-num">' + id + '</div>' +
+                '<div class="prop-info"><div class="prop-name">' + propNames[id] + '</div>' +
+                '<div class="prop-price">RM ' + Number(prop.current_price||0).toLocaleString() + (prop.highest_bidder ? ' · ' + prop.highest_bidder : '') + '</div></div>' +
+                '<div class="prop-badge ' + badgeClass + '">' + badgeText + '</div></div>';
+        }).join('');
+}
+
+function selectProp(id) {
+    selectedProperty = id;
+    document.getElementById('propertySelect').value = String(id);
+    updateDisplay();
+    loadBidHistory();
+}
+
+async function startBidding() {
+    const prop = allProperties[selectedProperty];
+    if (!prop || prop.status === 'sold' || prop.bidding_started) return;
+    try {
+        await sb.from('properties').update({ bidding_started:true, silent_countdown:10 }).eq('id', selectedProperty);
+        showMessage('✓ Bidding started — auto mode running');
+        startFullAutoMode();
+        await loadData();
+    } catch (err) { showMessage('❌ ' + err.message, true); }
+}
+
+async function forceSold() {
+    if (!confirm('Mark Property ' + selectedProperty + ' as SOLD?')) return;
+    try {
+        stopAutoMode();
+        const now = new Date().toISOString();
+        await sb.from('properties').update({ status:'sold', stage:0, timer:0, sold_at:now }).eq('id', selectedProperty);
+        showMessage('✓ Property ' + selectedProperty + ' marked as SOLD');
+        await loadData();
+    } catch (err) { showMessage('❌ ' + err.message, true); }
+}
+
+async function openNextProperty() {
+    const nextId = selectedProperty + 1;
+    if (!allProperties[nextId]) { showMessage('No more properties!', true); return; }
+    if (!confirm('Open Property ' + nextId + '?')) return;
+    try {
+        stopAutoMode();
+        await sb.from('properties').update({ opened_by_teacher:false }).neq('id', nextId);
+        await sb.from('properties').update({
+            status:'open', stage:0, timer:0, bidding_started:false,
+            silent_countdown:0, opened_by_teacher:true,
+            opened_by_teacher_at:new Date().toISOString()
+        }).eq('id', nextId);
+        setTimeout(async () => {
+            await sb.from('properties').update({ opened_by_teacher:false }).eq('id', nextId);
+        }, 1500);
+        showMessage('✓ Property ' + nextId + ' opened');
+        selectedProperty = nextId;
+        document.getElementById('propertySelect').value = String(nextId);
+        await loadData();
+        loadBidHistory();
+    } catch (err) { showMessage('❌ ' + err.message, true); }
+}
+
+async function resetAllProperties() {
+    if (!confirm('⚠️ Reset ALL 5 properties? This will clear all bids and participants!')) return;
+    try {
+        stopAutoMode();
+        await sb.from('bidders').delete().neq('id', 0);
+        await sb.from('participants').delete().neq('id', 0);
+        for (const id of [1,2,3,4,5]) {
+            await sb.from('properties').update({
+                current_price:openingBids[id], highest_bidder:null,
+                stage:0, timer:0, status:'open', bidding_started:false,
+                silent_countdown:0, release_next:false, release_by:null,
+                release_at:null, sold_at:null, opened_by_teacher:false, participant_count:0
+            }).eq('id', id);
         }
+        selectedProperty = 1;
+        document.getElementById('propertySelect').value = '1';
+        showMessage('✓ All properties reset successfully');
+        await loadData();
+        loadBidHistory();
+    } catch (err) { showMessage('❌ Reset failed: ' + err.message, true); }
+}
 
-        async function startBidding() {
-            try {
-                await sb.from('properties').update({ 
-                    bidding_started: true,
-                    silent_countdown: 10
-                }).eq('id', selectedProperty);
-                
-                showMessage('✓ 竞标已开始！静默倒数 10 秒...');
-                await loadData();
-            } catch (err) {
-                showMessage('❌ 失败: ' + err.message, true);
-            }
+function startFullAutoMode() {
+    stopAutoMode();
+    document.getElementById('autoModeBadge').classList.remove('hidden');
+    autoModeInterval = setInterval(async () => {
+        await loadData();
+        const prop = allProperties[selectedProperty];
+        if (!prop || prop.status === 'sold' || !prop.bidding_started) { stopAutoMode(); return; }
+        if (prop.silent_countdown > 0) {
+            document.getElementById('autoModeDetail').textContent = 'Silent: ' + prop.silent_countdown + 's';
+            const newCount = prop.silent_countdown - 1;
+            if (newCount <= 0) await sb.from('properties').update({ silent_countdown:0, stage:1, timer:10 }).eq('id', selectedProperty);
+            else await sb.from('properties').update({ silent_countdown:newCount }).eq('id', selectedProperty);
+            return;
         }
-
-        async function markSoldOnly() {
-            try {
-                const now = new Date().toISOString();
-                await sb.from('properties').update({ status: 'sold', stage: 0, timer: 0, release_next: false, sold_at: now }).eq('id', selectedProperty);
-                showMessage('✓ 已將當前房產標為 sold');
-                await loadData();
-            } catch (err) {
-                showMessage('❌ 失敗: ' + err.message, true);
-            }
-        }
-
-        async function startCalling() {
-            try {
-                await sb.from('properties').update({ stage: 1, timer: 10, bidding_started: true }).eq('id', selectedProperty);
-                showMessage('✓ 開始 1st Calling');
-                await loadData();
-            } catch (err) { showMessage('❌ 失敗: ' + err.message, true); }
-        }
-
-        async function secondCalling() {
-            try {
-                await sb.from('properties').update({ stage: 2, timer: 10 }).eq('id', selectedProperty);
-                showMessage('✓ 進入 2nd Calling'); 
-                await loadData();
-            } catch (err) { showMessage('❌ 失敗: ' + err.message, true); }
-        }
-
-        async function thirdCalling() {
-            try {
-                await sb.from('properties').update({ stage: 3, timer: 5 }).eq('id', selectedProperty);
-                showMessage('✓ 進入 3rd Calling'); 
-                await loadData();
-            } catch (err) { showMessage('❌ 失敗: ' + err.message, true); }
-        }
-
-        async function forceSold() {
-            try {
-                const now = new Date().toISOString();
-                await sb.from('properties').update({ status: 'sold', stage: 0, timer: 0, release_next: false, sold_at: now }).eq('id', selectedProperty);
-                showMessage('✓ 已強制成交');
-                await loadData();
-            } catch (err) { showMessage('❌ 失敗: ' + err.message, true); }
-        }
-
-        async function openNextProperty() {
-            try {
-                const nextId = selectedProperty + 1;
-                if (!allProperties[nextId]) {
-                    showMessage('❌ 沒有下一件房産', true);
-                    return;
-                }
-
-                await sb.from('properties').update({ opened_by_teacher: false }).neq('id', nextId);
-                await sb.from('properties').update({
-                    status: 'open',
-                    stage: 0,
-                    timer: 0,
-                    bidding_started: false,
-                    silent_countdown: 0,
-                    opened_by_teacher: true,
-                    opened_by_teacher_at: new Date().toISOString()
-                }).eq('id', nextId);
-
-                setTimeout(async () => {
-                    try { await sb.from('properties').update({ opened_by_teacher: false }).eq('id', nextId); } 
-                    catch(e){ console.error('cleanup opened_by_teacher failed', e); }
-                }, 1500);
-
-                showMessage(`✓ 已打開房産 ${nextId}`);
-                selectedProperty = nextId;
-                document.getElementById('propertySelect').value = String(nextId);
-                await loadData();
-            } catch (err) { 
-                showMessage('❌ 失敗: ' + err.message, true); 
-            }
-        }
-
-        async function startFullAutoMode() {
-            const prop = allProperties[selectedProperty];
-            if (!prop) return;
-
-            if (prop.status === 'sold') {
-                showMessage('❌ 此房産已成交，無法啟動自動模式', true);
-                return;
-            }
-
-            stopAutoMode();
-            
-            document.getElementById('autoModeStatus').classList.remove('hidden');
-            showMessage('✓ 完整自動模式已啟動');
-
-            await sb.from('properties').update({ 
-                bidding_started: true,
-                silent_countdown: 10
-            }).eq('id', selectedProperty);
-            await loadData();
-
-            autoModeInterval = setInterval(async () => {
-                try {
-                    const { data } = await sb.from('properties').select('*').eq('id', selectedProperty).single();
-                    if (!data) return;
-
-                    if (data.status === 'sold') {
-                        stopAutoMode();
-                        return;
-                    }
-
-                    if (data.silent_countdown > 0) {
-                        await sb.from('properties').update({ 
-                            silent_countdown: data.silent_countdown - 1 
-                        }).eq('id', selectedProperty);
-                        
-                        if (data.silent_countdown - 1 === 0) {
-                            await sb.from('properties').update({ 
-                                stage: 1, 
-                                timer: 10 
-                            }).eq('id', selectedProperty);
-                            showMessage('⏩ 靜默倒數結束，進入 1st Calling');
-                        }
-                    }
-                    else if (data.stage > 0) {
-                        if (data.timer > 0) {
-                            await sb.from('properties').update({ timer: data.timer - 1 }).eq('id', selectedProperty);
-                        } else {
-                            if (data.stage === 1) {
-                                await sb.from('properties').update({ stage: 2, timer: 10 }).eq('id', selectedProperty);
-                                showMessage('⏩ 自動進入 2nd Calling');
-                            } else if (data.stage === 2) {
-                                await sb.from('properties').update({ stage: 3, timer: 5 }).eq('id', selectedProperty);
-                                showMessage('⏩ 自動進入 3rd Calling');
-                            } else if (data.stage === 3) {
-                                const now = new Date().toISOString();
-                                await sb.from('properties').update({ 
-                                    status: 'sold', 
-                                    stage: 0, 
-                                    timer: 0, 
-                                    sold_at: now 
-                                }).eq('id', selectedProperty);
-                                showMessage('🎉 自動成交！');
-                                stopAutoMode();
-                            }
-                        }
-                    }
-
-                    await loadData();
-                } catch (err) {
-                    console.error('自動模式錯誤:', err);
-                }
-            }, 1000);
-        }
-
-        function stopAutoMode() {
-            if (autoModeInterval) {
-                clearInterval(autoModeInterval);
-                autoModeInterval = null;
-            }
-            document.getElementById('autoModeStatus').classList.add('hidden');
-        }
-
-        function updateDisplay() {
-            const prop = allProperties[selectedProperty];
-            if (!prop) return;
-
-            // 显示参与人数
-            const participantCount = prop.participant_count || 0;
-            document.getElementById('participantCount').textContent = `${participantCount}/12`;
-
-            document.getElementById('propertySelect').value = String(selectedProperty);
-            document.getElementById('currentStatus').textContent = prop.status === 'open' ? '進行中' : '已成交';
-            
-            const biddingStatusEl = document.getElementById('biddingStatus');
-            const startBtn = document.getElementById('startBiddingBtn');
-            const silentIndicator = document.getElementById('silentCountdownIndicator');
-            const silentDisplay = document.getElementById('silentCountdownDisplay');
-            
-            if (prop.status === 'sold') {
-                biddingStatusEl.textContent = '已結束';
-                startBtn.disabled = true;
-                silentIndicator.classList.add('hidden');
-            } else if (prop.bidding_started) {
-                biddingStatusEl.textContent = '✅ 已開始';
-                biddingStatusEl.style.color = '#86efac';
-                startBtn.disabled = true;
-                
-                if (prop.silent_countdown > 0) {
-                    silentIndicator.classList.remove('hidden');
-                    silentDisplay.textContent = prop.silent_countdown;
+        if (prop.stage > 0 && prop.timer > 0) {
+            const stageNames = {1:'1st Calling',2:'2nd Calling',3:'3rd Calling'};
+            document.getElementById('autoModeDetail').textContent = stageNames[prop.stage] + ': ' + prop.timer + 's';
+            const newTimer = prop.timer - 1;
+            if (newTimer <= 0) {
+                if (prop.stage < 3) {
+                    const nextTimer = prop.stage === 2 ? 5 : 10;
+                    await sb.from('properties').update({ stage:prop.stage+1, timer:nextTimer }).eq('id', selectedProperty);
                 } else {
-                    silentIndicator.classList.add('hidden');
+                    await sb.from('properties').update({ status:'sold', stage:0, timer:0, sold_at:new Date().toISOString() }).eq('id', selectedProperty);
+                    stopAutoMode();
                 }
             } else {
-                biddingStatusEl.textContent = '⏳ 未開始';
-                biddingStatusEl.style.color = '#fbbf24';
-                startBtn.disabled = false;
-                silentIndicator.classList.add('hidden');
+                await sb.from('properties').update({ timer:newTimer }).eq('id', selectedProperty);
             }
-
-            document.getElementById('currentBid').textContent = `RM ${Number(prop.current_price || 0).toLocaleString()}`;
-            document.getElementById('currentBidder').textContent = prop.highest_bidder || '等待中...';
-            document.getElementById('currentStage').textContent = prop.stage === 0 ? '未開始' : `${prop.stage} (${prop.timer}s)`;
-
-            renderAllProperties();
-            loadBidderStats();
         }
+    }, 1000);
+}
 
-        async function loadBidderStats() {
-            try {
-                const { data: bidders } = await sb.from('bidders').select('*').eq('property_id', selectedProperty);
-                if (bidders) {
-                    const unique = new Set(bidders.map(b => b.bidder_name)).size;
-                    document.getElementById('bidderCount').textContent = unique;
-                    document.getElementById('bidCount').textContent = bidders.length;
-                }
-                const { data: allProps } = await sb.from('properties').select('*');
-                const soldCount = (allProps || []).filter(p => p.status === 'sold').length;
-                document.getElementById('soldCount').textContent = `${soldCount}/5`;
-            } catch (err) { console.error('統計錯誤:', err); }
-        }
+function stopAutoMode() {
+    if (autoModeInterval) { clearInterval(autoModeInterval); autoModeInterval = null; }
+    document.getElementById('autoModeBadge').classList.add('hidden');
+}
 
-        function renderAllProperties() {
-            const list = document.getElementById('propertiesList');
-            if (!allProperties || Object.keys(allProperties).length === 0) { 
-                list.innerHTML = '<div style="color: #fca5a5;">❌ 没有房产数据</div>'; 
-                return; 
-            }
+async function loadBidHistory() {
+    const el = document.getElementById('bidHistory');
+    const { data } = await sb.from('bidders').select('*').eq('property_id', selectedProperty).order('id', { ascending:false }).limit(20);
+    document.getElementById('totalBids').textContent = (data||[]).length + ' bids';
+    if (!data || data.length === 0) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px 0">No bids yet</div>'; return; }
+    el.innerHTML = data.map((b,i) =>
+        '<div class="bid-row"><div><div class="bid-name">' + (i===0?'🥇 ':'') + b.bidder_name + '</div>' +
+        '<div class="bid-time">' + new Date(b.created_at||Date.now()).toLocaleTimeString('en-MY') + '</div></div>' +
+        '<div class="bid-amount">RM ' + Number(b.amount||0).toLocaleString() + '</div></div>'
+    ).join('');
+}
 
-            list.innerHTML = Object.entries(allProperties)
-                .sort((a,b)=> parseInt(a[0]) - parseInt(b[0]))
-                .map(([id, prop]) => `
-                <div class="property-row">
-                    <div class="property-name">房产 ${id} - ${propertyNames[id] || ''} ${prop.bidding_started ? '✅' : '⏳'}</div>
-                    <div>RM ${Number(prop.current_price || 0).toLocaleString()}</div>
-                    <div style="color:#a5f3fc;">${prop.highest_bidder || '等待中...'}</div>
-                    <div class="property-status ${prop.status === 'open' ? 'status-open' : 'status-sold'}">
-                        ${prop.status === 'open' ? '進行中' : '已成交'}
-                    </div>
-                    <div>${prop.silent_countdown > 0 ? `靜默${prop.silent_countdown}s` : prop.stage > 0 ? `${prop.stage}階段 (${prop.timer}s)` : '-'}</div>
-                </div>
-            `).join('');
-        }
+async function loadRegistrations() {
+    const el = document.getElementById('registrationList');
+    el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px 0">Loading...</div>';
+    const { data } = await sb.from('registrations').select('*').order('property_id').order('registered_at');
+    if (!data || data.length === 0) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px 0">No registrations yet</div>'; return; }
+    const grouped = {};
+    data.forEach(r => { if (!grouped[r.property_id]) grouped[r.property_id] = []; grouped[r.property_id].push(r); });
+    el.innerHTML = Object.entries(grouped).map(([pid, regs]) =>
+        '<div style="margin-bottom:16px"><div style="font-size:.75rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Property ' + pid + ' — ' + propNames[pid] + ' <span style="color:var(--muted);font-weight:400">(' + regs.length + '/12)</span></div>' +
+        '<table class="reg-table"><thead><tr><th>#</th><th>Name</th><th>PIN</th><th></th></tr></thead><tbody>' +
+        regs.map((r,i) =>
+            '<tr><td style="color:var(--muted)">' + (i+1) + '</td><td style="color:white;font-weight:500">' + r.full_name + '</td>' +
+            '<td><span class="pin-chip">' + r.pin + '</span></td>' +
+            '<td><button class="btn-remove" onclick="deleteRegistration(' + r.id + ')">✕</button></td></tr>'
+        ).join('') + '</tbody></table></div>'
+    ).join('');
+}
 
-        function showMessage(text, isError=false) {
-            const box = document.getElementById('messageBox');
-            box.innerHTML = text;
-            box.classList.remove('hidden');
-            box.classList.toggle('error-message', isError);
-            setTimeout(()=>box.classList.add('hidden'), 3500);
-        }
+async function deleteRegistration(id) {
+    if (!confirm('Remove this registration?')) return;
+    await sb.from('registrations').delete().eq('id', id);
+    loadRegistrations();
+}
 
-        loadData();
-        setInterval(loadData, 1000);
+async function clearAllRegistrations() {
+    if (!confirm('⚠️ Clear ALL registrations?')) return;
+    await sb.from('registrations').delete().neq('id', 0);
+    loadRegistrations();
+    showMessage('✓ All registrations cleared');
+}
 
-        sb.channel('properties-changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => loadData())
-            .subscribe();
-    </script>
+function showMessage(text, isError=false) {
+    const box = document.getElementById('messageBox');
+    box.textContent = text;
+    box.className = isError ? 'error' : 'success';
+    box.classList.remove('hidden');
+    setTimeout(() => box.classList.add('hidden'), 3000);
+}
+
+loadData();
+loadBidHistory();
+loadRegistrations();
+setInterval(loadData, 1000);
+setInterval(loadRegistrations, 15000);
+
+sb.channel('prop-changes')
+    .on('postgres_changes', { event:'*', schema:'public', table:'properties' }, () => { loadData(); loadBidHistory(); })
+    .subscribe();
+</script>
 </body>
 </html>
