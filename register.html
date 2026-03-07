@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KL Property Auction - Register</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #c9a84c;
+            --gold-light: #e8c97a;
+            --dark: #0a0e1a;
+            --dark2: #111827;
+            --card: rgba(255,255,255,0.04);
+            --border: rgba(201,168,76,0.25);
+            --text: #e8e4d9;
+            --muted: rgba(232,228,217,0.5);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--dark);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 20% 20%, rgba(201,168,76,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 80% at 80% 80%, rgba(59,130,246,0.06) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        /* Grid pattern */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        .page { width: 100%; max-width: 520px; position: relative; z-index: 1; }
+
+        /* Header */
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .logo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(201,168,76,0.1);
+            border: 1px solid var(--border);
+            padding: 8px 20px;
+            border-radius: 100px;
+            margin-bottom: 20px;
+            font-size: 0.8rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--gold-light);
+        }
+        .logo h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--gold-light);
+            line-height: 1.1;
+            margin-bottom: 8px;
+        }
+        .logo p {
+            color: var(--muted);
+            font-size: 0.9rem;
+            font-weight: 300;
+        }
+
+        /* Steps indicator */
+        .steps {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 32px;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+        .step.active { color: var(--gold-light); }
+        .step.done { color: rgba(201,168,76,0.5); }
+        .step-num {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid rgba(201,168,76,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .step.active .step-num {
+            background: var(--gold);
+            border-color: var(--gold);
+            color: var(--dark);
+        }
+        .step.done .step-num {
+            background: rgba(201,168,76,0.2);
+            border-color: rgba(201,168,76,0.4);
+        }
+        .step-line {
+            width: 40px;
+            height: 1px;
+            background: rgba(201,168,76,0.2);
+            margin: 0 4px;
+        }
+
+        /* Card */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px;
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(201,168,76,0.5), transparent);
+        }
+
+        .card-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: white;
+        }
+        .card-sub {
+            color: var(--muted);
+            font-size: 0.875rem;
+            margin-bottom: 28px;
+            font-weight: 300;
+        }
+
+        /* Property grid */
+        .property-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .property-option {
+            border: 1.5px solid rgba(201,168,76,0.2);
+            border-radius: 12px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(255,255,255,0.02);
+            position: relative;
+        }
+        .property-option:hover {
+            border-color: rgba(201,168,76,0.5);
+            background: rgba(201,168,76,0.05);
+        }
+        .property-option.selected {
+            border-color: var(--gold);
+            background: rgba(201,168,76,0.1);
+        }
+        .property-option.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 8px; right: 10px;
+            color: var(--gold);
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+        .prop-num {
+            font-size: 0.7rem;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .prop-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: white;
+            line-height: 1.3;
+        }
+        .prop-price {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+        .property-option.full {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .full-badge {
+            display: inline-block;
+            background: rgba(239,68,68,0.2);
+            border: 1px solid rgba(239,68,68,0.4);
+            color: #fca5a5;
+            font-size: 0.65rem;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-top: 4px;
+            letter-spacing: 0.05em;
+        }
+
+        /* Form */
+        .form-group { margin-bottom: 20px; }
+        .form-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--gold-light);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1.5px solid rgba(201,168,76,0.2);
+            border-radius: 10px;
+            color: white;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+        .form-input:focus {
+            border-color: var(--gold);
+            background: rgba(201,168,76,0.05);
+        }
+        .form-input::placeholder { color: rgba(255,255,255,0.25); }
+
+        /* Button */
+        .btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--gold) 0%, #a07830 100%);
+            border: none;
+            border-radius: 12px;
+            color: var(--dark);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.02em;
+        }
+        .btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* Error */
+        .error-msg {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #fca5a5;
+            font-size: 0.875rem;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        /* ===== SUCCESS PAGE ===== */
+        .success-page { display: none; text-align: center; }
+        .success-icon {
+            width: 72px;
+            height: 72px;
+            background: rgba(201,168,76,0.15);
+            border: 2px solid var(--gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 24px;
+        }
+        .success-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 8px;
+        }
+        .success-sub {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-bottom: 32px;
+        }
+
+        .pin-display {
+            background: rgba(201,168,76,0.08);
+            border: 2px solid var(--gold);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+            position: relative;
+        }
+        .pin-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--gold);
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .pin-digits {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .pin-digit {
+            width: 56px;
+            height: 72px;
+            background: rgba(255,255,255,0.08);
+            border: 2px solid rgba(201,168,76,0.4);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--gold-light);
+        }
+        .pin-warning {
+            font-size: 0.8rem;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.875rem;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-key { color: var(--muted); }
+        .info-val { font-weight: 500; color: white; }
+        .info-val.gold { color: var(--gold-light); }
+
+        .url-box {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .url-text {
+            font-size: 0.85rem;
+            color: #60a5fa;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .copy-btn {
+            background: rgba(96,165,250,0.15);
+            border: 1px solid rgba(96,165,250,0.3);
+            border-radius: 6px;
+            color: #60a5fa;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            white-space: nowrap;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover { background: rgba(96,165,250,0.25); }
+
+        .btn-outline {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+        .btn-outline:hover { border-color: var(--gold); color: var(--gold-light); }
+
+        /* STEP 1 / STEP 2 pages */
+        #step1 { display: block; }
+        #step2 { display: none; }
+
+        /* Loading spinner */
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(10,14,26,0.4);
+            border-top-color: var(--dark);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 480px) {
+            .card { padding: 24px 20px; }
+            .property-grid { grid-template-columns: 1fr; }
+            .logo h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+    <!-- Logo -->
+    <div class="logo">
+        <div class="logo-badge">🏛️ &nbsp; Live Auction</div>
+        <h1>KL Property<br>Auction</h1>
+        <p>Participant Registration</p>
+    </div>
+
+    <!-- Steps -->
+    <div class="steps" id="stepsBar">
+        <div class="step active" id="stepItem1">
+            <div class="step-num">1</div>
+            <span>Select Property</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" id="stepItem2">
+            <div class="step-num">2</div>
+            <span>Your Details</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" id="stepItem3">
+            <div class="step-num">3</div>
+            <span>Your PIN</span>
+        </div>
+    </div>
+
+    <!-- STEP 1: Select Property -->
+    <div class="card" id="step1">
+        <div class="card-title">Choose a Property</div>
+        <div class="card-sub">Select the property you'd like to bid on</div>
+
+        <div class="property-grid" id="propertyGrid">
+            <!-- Populated by JS -->
+        </div>
+        <div class="error-msg" id="step1Error"></div>
+
+        <br>
+        <button class="btn" onclick="goToStep2()">Continue →</button>
+    </div>
+
+    <!-- STEP 2: Enter Name -->
+    <div class="card" id="step2">
+        <div class="card-title">Your Details</div>
+        <div class="card-sub" id="step2Sub">Registering for <strong></strong></div>
+
+        <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" class="form-input" id="fullNameInput"
+                placeholder="e.g. Ahmad bin Abdullah"
+                autocomplete="off" />
+        </div>
+
+        <div class="error-msg" id="step2Error"></div>
+
+        <button class="btn" id="registerBtn" onclick="submitRegistration()">Register & Get PIN</button>
+        <button class="btn-outline" onclick="backToStep1()">← Back</button>
+    </div>
+
+    <!-- SUCCESS: Show PIN -->
+    <div class="card success-page" id="successPage">
+        <div class="success-icon">🎉</div>
+        <div class="success-title">You're Registered!</div>
+        <div class="success-sub">Save your PIN — you'll need it to join the auction</div>
+
+        <div class="pin-display">
+            <div class="pin-label">🔑 Your 4-Digit PIN</div>
+            <div class="pin-digits" id="pinDigits"></div>
+            <div class="pin-warning">⚠️ Screenshot this page — PIN won't be shown again</div>
+        </div>
+
+        <div class="info-row">
+            <span class="info-key">Name</span>
+            <span class="info-val" id="successName"></span>
+        </div>
+        <div class="info-row">
+            <span class="info-key">Property</span>
+            <span class="info-val gold" id="successProperty"></span>
+        </div>
+
+        <div class="url-box">
+            <span class="url-text">https://property-auction.vercel.app/</span>
+            <button class="copy-btn" onclick="copyUrl()">Copy Link</button>
+        </div>
+
+        <button class="btn" onclick="window.location.href='https://property-auction.vercel.app/'">
+            Go to Auction →
+        </button>
+        <button class="btn-outline" onclick="registerAnother()">Register Another Person</button>
+    </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MzM3NDEsImV4cCI6MjA4MzUwOTc0MX0.fxlPFVuHlwLG56bPOeP2s6qsoQn5aEgeBrdHfkvjvyM';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const AUCTION_URL = 'https://property-auction.vercel.app/';
+const SYSTEM_PIN = '0000'; // 系统账号PIN，可以进所有房产
+
+const propertyInfo = {
+    1: { address: 'Taman Puteri Subang', openingBid: 450000 },
+    2: { address: 'Setia Alam', openingBid: 550000 },
+    3: { address: 'Taman TTDI Shah Alam', openingBid: 688500 },
+    4: { address: 'Bandar Mahkota Cheras', openingBid: 486000 },
+    5: { address: 'Taman Subang Murni', openingBid: 445000 }
+};
+
+let selectedPropertyId = null;
+let participantCounts = {};
+
+async function loadParticipantCounts() {
+    const { data } = await sb.from('registrations').select('property_id');
+    participantCounts = {};
+    if (data) {
+        data.forEach(r => {
+            participantCounts[r.property_id] = (participantCounts[r.property_id] || 0) + 1;
+        });
+    }
+    renderPropertyGrid();
+}
+
+function renderPropertyGrid() {
+    const grid = document.getElementById('propertyGrid');
+    grid.innerHTML = '';
+    Object.entries(propertyInfo).forEach(([id, info]) => {
+        const count = participantCounts[id] || 0;
+        const isFull = count >= 12;
+        const isSelected = parseInt(id) === selectedPropertyId;
+        grid.innerHTML += `
+            <div class="property-option ${isFull ? 'full' : ''} ${isSelected ? 'selected' : ''}"
+                 onclick="selectProperty(${id})">
+                <div class="prop-num">Property ${id}</div>
+                <div class="prop-name">${info.address}</div>
+                <div class="prop-price">Opening: RM ${info.openingBid.toLocaleString()}</div>
+                <div style="margin-top:6px; font-size:0.75rem; color:${count >= 10 ? '#fbbf24' : 'rgba(232,228,217,0.4)'}">
+                    ${isFull ? '<span class="full-badge">FULL</span>' : `${count}/12 registered`}
+                </div>
+            </div>`;
+    });
+}
+
+function selectProperty(id) {
+    selectedPropertyId = id;
+    renderPropertyGrid();
+    document.getElementById('step1Error').style.display = 'none';
+}
+
+function goToStep2() {
+    if (!selectedPropertyId) {
+        const err = document.getElementById('step1Error');
+        err.textContent = 'Please select a property first.';
+        err.style.display = 'block';
+        return;
+    }
+    document.getElementById('step1').style.display = 'none';
+    document.getElementById('step2').style.display = 'block';
+    document.getElementById('step2Sub').innerHTML =
+        `Registering for <strong style="color:#e8c97a">${propertyInfo[selectedPropertyId].address}</strong>`;
+    document.getElementById('fullNameInput').focus();
+
+    // Update steps
+    document.getElementById('stepItem1').className = 'step done';
+    document.getElementById('stepItem2').className = 'step active';
+}
+
+function backToStep1() {
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('step1').style.display = 'block';
+    document.getElementById('stepItem1').className = 'step active';
+    document.getElementById('stepItem2').className = 'step';
+}
+
+function generatePin() {
+    let pin;
+    do {
+        pin = String(Math.floor(1000 + Math.random() * 9000));
+    } while (pin === SYSTEM_PIN);
+    return pin;
+}
+
+async function submitRegistration() {
+    const name = document.getElementById('fullNameInput').value.trim();
+    const err = document.getElementById('step2Error');
+
+    if (!name) {
+        err.textContent = 'Please enter your full name.';
+        err.style.display = 'block';
+        return;
+    }
+    if (name.length < 3) {
+        err.textContent = 'Please enter your full name (at least 3 characters).';
+        err.style.display = 'block';
+        return;
+    }
+
+    err.style.display = 'none';
+    const btn = document.getElementById('registerBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Registering...';
+
+    try {
+        // Check if name already registered for this property
+        const { data: existing } = await sb
+            .from('registrations')
+            .select('id, pin')
+            .eq('property_id', selectedPropertyId)
+            .ilike('full_name', name)
+            .single();
+
+        if (existing) {
+            err.textContent = `"${name}" is already registered for this property.`;
+            err.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = 'Register & Get PIN';
+            return;
+        }
+
+        // Check room not full
+        const count = participantCounts[selectedPropertyId] || 0;
+        if (count >= 12) {
+            err.textContent = 'This property is full (12/12). Please choose another.';
+            err.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = 'Register & Get PIN';
+            return;
+        }
+
+        // Generate unique PIN
+        let pin;
+        let attempts = 0;
+        while (attempts < 20) {
+            pin = generatePin();
+            const { data: pinExists } = await sb
+                .from('registrations')
+                .select('id')
+                .eq('pin', pin)
+                .single();
+            if (!pinExists) break;
+            attempts++;
+        }
+
+        // Insert registration
+        const { error } = await sb
+            .from('registrations')
+            .insert([{ property_id: selectedPropertyId, full_name: name, pin: pin }]);
+
+        if (error) throw error;
+
+        showSuccess(name, pin);
+
+    } catch (e) {
+        err.textContent = 'Registration failed: ' + e.message;
+        err.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = 'Register & Get PIN';
+    }
+}
+
+function showSuccess(name, pin) {
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('successPage').style.display = 'block';
+    document.getElementById('stepsBar').style.display = 'none';
+
+    // PIN digits
+    const digitsEl = document.getElementById('pinDigits');
+    digitsEl.innerHTML = pin.split('').map(d =>
+        `<div class="pin-digit">${d}</div>`).join('');
+
+    document.getElementById('successName').textContent = name;
+    document.getElementById('successProperty').textContent =
+        `Property ${selectedPropertyId} — ${propertyInfo[selectedPropertyId].address}`;
+}
+
+function copyUrl() {
+    navigator.clipboard.writeText(AUCTION_URL).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy Link', 2000);
+    });
+}
+
+function registerAnother() {
+    selectedPropertyId = null;
+    document.getElementById('fullNameInput').value = '';
+    document.getElementById('successPage').style.display = 'none';
+    document.getElementById('step1').style.display = 'block';
+    document.getElementById('stepsBar').style.display = 'flex';
+    document.getElementById('stepItem1').className = 'step active';
+    document.getElementById('stepItem2').className = 'step';
+    document.getElementById('stepItem3').className = 'step';
+    loadParticipantCounts();
+}
+
+// Enter key support
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+        if (document.getElementById('step2').style.display !== 'none') {
+            submitRegistration();
+        }
+    }
+});
+
+// Init
+loadParticipantCounts();
+</script>
+</body>
+</html>
