@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>KL Property Auction — Teacher Panel</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔨</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
@@ -453,10 +454,22 @@ async function resetAllProperties() {
 function startFullAutoMode() {
     stopAutoMode();
     document.getElementById('autoModeBadge').classList.remove('hidden');
+    let lastBidPrice = null; // track bids to reset stage on new bid
     autoModeInterval = setInterval(async () => {
         await loadData();
+        loadBidHistory(); // refresh bid history every tick
         const prop = allProperties[selectedProperty];
         if (!prop || prop.status === 'sold' || !prop.bidding_started) { stopAutoMode(); return; }
+
+        // Detect new bid — reset to stage 1 with 10s timer
+        if (prop.stage > 0 && lastBidPrice !== null && prop.current_price > lastBidPrice) {
+            lastBidPrice = prop.current_price;
+            await sb.from('properties').update({ stage:1, timer:10 }).eq('id', selectedProperty);
+            document.getElementById('autoModeDetail').textContent = 'New bid! Back to 1st Calling';
+            return;
+        }
+        lastBidPrice = prop.current_price;
+
         if (prop.silent_countdown > 0) {
             document.getElementById('autoModeDetail').textContent = 'Silent: ' + prop.silent_countdown + 's';
             const newCount = prop.silent_countdown - 1;
