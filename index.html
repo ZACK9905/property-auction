@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KL Property Auction Live</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
@@ -684,13 +685,8 @@ async function loadData(){
                 currentPropertyObj = biddingNow;
                 soldAlreadyShown = false;
                 hasJoinedCurrentProperty = false;
-                userName = ''; isSystemAccount = false; userPropertyId = null;
+                // Stay logged in — just hide sold overlay and refresh UI
                 document.getElementById('soldOverlay').classList.remove('active');
-                document.getElementById('mainContent').classList.add('hidden');
-                document.getElementById('topBar').classList.add('hidden');
-                document.getElementById('loginScreen').classList.remove('hidden');
-                document.getElementById('userNameInput').value = '';
-                document.getElementById('userPinInput').value = '';
             }
         } else if (!biddingNow && firstOpen && firstOpen.id !== currentProperty) {
             if (!userName) { currentProperty = firstOpen.id; currentPropertyObj = firstOpen; soldAlreadyShown = false; hasJoinedCurrentProperty = false; }
@@ -750,18 +746,10 @@ function showMessage(text, isErr=false){
 function playGavelAnimation(){
     const container = document.getElementById('gavelContainer');
     container.innerHTML = '';
-    const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-    svg.setAttribute('width','200'); svg.setAttribute('height','200'); svg.setAttribute('viewBox','0 0 200 200');
-    svg.innerHTML = `<style>
-        .gavel{transform-origin:150px 150px;animation:gavelHit 0.5s ease-out 3}
-        @keyframes gavelHit{0%{transform:rotate(-40deg)}60%{transform:rotate(10deg)}100%{transform:rotate(-40deg)}}
-    </style>
-    <g class="gavel">
-        <rect x="60" y="60" width="100" height="30" rx="6" fill="#b8892a"/>
-        <rect x="130" y="55" width="20" height="40" rx="4" fill="#9a6f1e"/>
-        <rect x="90" y="85" width="12" height="70" rx="4" fill="#7a5414"/>
-    </g>`;
-    container.appendChild(svg);
+    const img = document.createElement('img');
+    img.src = 'gavel.gif?' + Date.now();
+    img.style.cssText = 'width:180px;height:180px;object-fit:contain;';
+    container.appendChild(img);
 }
 
 // ============================================================
