@@ -579,9 +579,11 @@ function initApp() {
     loadBidHistory();
     loadRegistrations();
     setInterval(loadData, 1000);
+    setInterval(loadBidHistory, 2000);
     setInterval(loadRegistrations, 15000);
     sb.channel('prop-changes')
         .on('postgres_changes', { event:'*', schema:'public', table:'properties' }, () => { loadData(); loadBidHistory(); })
+        .on('postgres_changes', { event:'INSERT', schema:'public', table:'bidders' }, () => { loadBidHistory(); })
         .subscribe();
 }
 
