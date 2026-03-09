@@ -684,9 +684,21 @@ async function loadData(){
                 currentProperty = biddingNow.id;
                 currentPropertyObj = biddingNow;
                 soldAlreadyShown = false;
-                hasJoinedCurrentProperty = false;
-                // Stay logged in — just hide sold overlay and refresh UI
                 document.getElementById('soldOverlay').classList.remove('active');
+
+                // Auto re-join if student is registered for new property
+                if (userName && userPropertyId === biddingNow.id && !hasJoinedCurrentProperty) {
+                    try {
+                        const { data: existing } = await sb.from('participants').select('id').eq('property_id', userPropertyId).eq('participant_name', userName).single();
+                        if (!existing) {
+                            await sb.from('participants').insert([{ property_id: userPropertyId, participant_name: userName, is_active: true }]);
+                        }
+                        hasJoinedCurrentProperty = true;
+                    } catch(e) { hasJoinedCurrentProperty = true; } // if already exists, still allow bid
+                } else if (userName && userPropertyId !== biddingNow.id) {
+                    // Not registered for this property — observer mode
+                    hasJoinedCurrentProperty = false;
+                }
             }
         } else if (!biddingNow && firstOpen && firstOpen.id !== currentProperty) {
             if (!userName) { currentProperty = firstOpen.id; currentPropertyObj = firstOpen; soldAlreadyShown = false; hasJoinedCurrentProperty = false; }
