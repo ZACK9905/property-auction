@@ -386,12 +386,18 @@ function selectProp(id) {
 
 async function startBidding() {
     const prop = allProperties[selectedProperty];
-    if (!prop || prop.status === 'sold' || prop.bidding_started) return;
+    if (!prop || prop.status === 'sold') return;
+    if (prop.bidding_started) { showMessage('Bidding already started for this property', true); return; }
     try {
-        await sb.from('properties').update({ bidding_started:true, silent_countdown:10 }).eq('id', selectedProperty);
-        showMessage('✓ Bidding started — auto mode running');
+        stopAutoMode();
+        // Stop any other property that may be bidding
+        await sb.from('properties').update({ bidding_started:false, stage:0, timer:0 }).neq('id', selectedProperty).eq('bidding_started', true);
+        // Start this property
+        await sb.from('properties').update({ bidding_started:true, silent_countdown:10, status:'open' }).eq('id', selectedProperty);
+        showMessage('✓ Bidding started for Property ' + selectedProperty);
         startFullAutoMode();
         await loadData();
+        loadBidHistory();
     } catch (err) { showMessage('❌ ' + err.message, true); }
 }
 
@@ -400,28 +406,25 @@ async function forceSold() {
     try {
         stopAutoMode();
         const now = new Date().toISOString();
-        await sb.from('properties').update({ status:'sold', stage:0, timer:0, sold_at:now }).eq('id', selectedProperty);
+        await sb.from('properties').update({ status:'sold', stage:0, timer:0, bidding_started:false, sold_at:now }).eq('id', selectedProperty);
         showMessage('✓ Property ' + selectedProperty + ' marked as SOLD');
         await loadData();
+        loadBidHistory();
     } catch (err) { showMessage('❌ ' + err.message, true); }
 }
 
 async function openNextProperty() {
-    const nextId = selectedProperty + 1;
-    if (!allProperties[nextId]) { showMessage('No more properties!', true); return; }
-    if (!confirm('Open Property ' + nextId + '?')) return;
+    // Find next unsold property after current
+    const ids = Object.keys(allProperties).map(Number).sort((a,b)=>a-b);
+    const nextId = ids.find(id => id > selectedProperty && allProperties[id].status !== 'sold');
+    if (!nextId) { showMessage('No more properties to open!', true); return; }
+    if (!confirm('Open Property ' + nextId + ' for bidding?')) return;
     try {
         stopAutoMode();
-        await sb.from('properties').update({ opened_by_teacher:false }).neq('id', nextId);
-        await sb.from('properties').update({
-            status:'open', stage:0, timer:0, bidding_started:false,
-            silent_countdown:0, opened_by_teacher:true,
-            opened_by_teacher_at:new Date().toISOString()
-        }).eq('id', nextId);
-        setTimeout(async () => {
-            await sb.from('properties').update({ opened_by_teacher:false }).eq('id', nextId);
-        }, 1500);
-        showMessage('✓ Property ' + nextId + ' opened');
+        // Stop current bidding if any
+        await sb.from('properties').update({ bidding_started:false, stage:0, timer:0 }).eq('bidding_started', true);
+        await sb.from('properties').update({ status:'open', stage:0, timer:0, bidding_started:false, silent_countdown:0 }).eq('id', nextId);
+        showMessage('✓ Property ' + nextId + ' is ready — press START to begin bidding');
         selectedProperty = nextId;
         document.getElementById('propertySelect').value = String(nextId);
         await loadData();
