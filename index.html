@@ -697,48 +697,50 @@ async function loadData(){
         const { data: allProps, error: propsError } = await sb.from('properties').select('*').order('id', { ascending: true });
         if (propsError || !allProps || allProps.length === 0) return;
 
-        const biddingNow = allProps.filter(p => p.bidding_started === true && p.status !== 'sold').sort((a,b) => b.id - a.id)[0];
-        const firstOpen = allProps.filter(p => p.status === 'open').sort((a,b) => a.id - b.id)[0];
-        let activeProperty = biddingNow || firstOpen || allProps[allProps.length - 1];
-
-        let found = allProps.find(p => p.id === currentProperty);
-        if (found) currentPropertyObj = found;
+        // Only follow bidding_started=true — never auto-jump on our own
+        const biddingNow = allProps.find(p => p.bidding_started === true && p.status !== 'sold');
 
         if (biddingNow && biddingNow.id !== currentProperty) {
-            if (lastTeacherOpenNotified !== biddingNow.id) {
-                lastTeacherOpenNotified = biddingNow.id;
-                currentProperty = biddingNow.id;
-                currentPropertyObj = biddingNow;
-                soldAlreadyShown = false;
-                document.getElementById('soldOverlay').classList.remove('active');
+            // Teacher started a different property — follow it
+            currentProperty = biddingNow.id;
+            currentPropertyObj = biddingNow;
+            soldAlreadyShown = false;
+            hideSoldOverlay();
 
-                // Auto re-join if student is registered for new property
-                if (userName && userPropertyId === biddingNow.id && !hasJoinedCurrentProperty) {
+            // Re-check join status for new property
+            if (userName && !isSystemAccount) {
+                if (userPropertyId === biddingNow.id) {
                     try {
-                        const { data: existing } = await sb.from('participants').select('id').eq('property_id', userPropertyId).eq('participant_name', userName).single();
+                        const { data: existing } = await sb.from('participants').select('id')
+                            .eq('property_id', userPropertyId).eq('participant_name', userName).single();
                         if (!existing) {
                             await sb.from('participants').insert([{ property_id: userPropertyId, participant_name: userName, is_active: true }]);
                         }
-                        hasJoinedCurrentProperty = true;
-                    } catch(e) { hasJoinedCurrentProperty = true; } // if already exists, still allow bid
-                } else if (userName && userPropertyId !== biddingNow.id) {
-                    // Not registered for this property — observer mode
+                    } catch(e) {}
+                    hasJoinedCurrentProperty = true;
+                } else {
                     hasJoinedCurrentProperty = false;
                 }
             }
-        } else if (!biddingNow && firstOpen && firstOpen.id !== currentProperty) {
-            if (!userName) { currentProperty = firstOpen.id; currentPropertyObj = firstOpen; soldAlreadyShown = false; hasJoinedCurrentProperty = false; }
+        } else {
+            // Stay on current property — just refresh the object
+            const updated = allProps.find(p => p.id === currentProperty);
+            if (updated) currentPropertyObj = updated;
         }
 
-        const { data: biddersData, error: biddersError } = await sb.from('bidders').select('*').eq('property_id', currentProperty).order('id', { ascending: false });
-        if (!biddersError) bidders = biddersData || [];
+        if (!currentPropertyObj) return;
+
+        const { data: biddersData } = await sb.from('bidders').select('*').eq('property_id', currentProperty).order('id', { ascending: false });
+        bidders = biddersData || [];
 
         updateUI();
 
-        if (!userName) { hideSoldOverlay(); soldAlreadyShown = false; }
-        else if (hasJoinedCurrentProperty && currentPropertyObj && currentPropertyObj.status === 'sold') {
+        // Sold overlay logic
+        if (!userName) {
+            hideSoldOverlay(); soldAlreadyShown = false;
+        } else if (currentPropertyObj.status === 'sold') {
             if (!soldAlreadyShown) { showSoldOverlay(); soldAlreadyShown = true; }
-        } else if (!currentPropertyObj || currentPropertyObj.status !== 'sold') {
+        } else {
             hideSoldOverlay(); soldAlreadyShown = false;
         }
     } catch (err) { console.error('loadData error:', err); }
