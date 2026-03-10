@@ -258,19 +258,23 @@
             margin-bottom: 20px;
         }
 
+        /* Main layout: left panel (image+info) | right panel (bid) */
         .auction-grid {
             display: grid;
-            grid-template-columns: 1fr 320px;
+            grid-template-columns: 1fr 380px;
             gap: 20px;
+            align-items: start;
         }
 
-        /* Property card */
+        /* Left: image on top, info below — stacked inside left col */
         .property-card {
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: 20px;
             overflow: hidden;
             box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
         }
         .property-image-container {
             width: 100%;
@@ -278,14 +282,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 300px;
+            height: 420px;
             position: relative;
-            overflow: hidden;
+            flex-shrink: 0;
         }
         .property-image {
-            width: 100%;
-            max-height: 380px;
-            object-fit: cover;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
             display: block;
         }
         .property-image-placeholder {
@@ -295,29 +301,29 @@
             justify-content: center;
         }
 
-        .property-body { padding: 24px; }
+        .property-body { padding: 20px 24px; }
         .property-address {
             font-family: 'Playfair Display', serif;
-            font-size: 1.5rem;
+            font-size: 1.35rem;
             font-weight: 700;
             color: var(--text);
             margin-bottom: 4px;
         }
-        .property-description { color: var(--muted); font-size: 0.875rem; margin-bottom: 12px; }
+        .property-description { color: var(--muted); font-size: 0.875rem; margin-bottom: 10px; }
         .property-details {
             display: flex;
             gap: 16px;
             font-size: 0.82rem;
             color: var(--muted);
-            padding: 10px 14px;
+            padding: 8px 14px;
             background: var(--bg);
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 14px;
         }
         .property-details span { display: flex; align-items: center; gap: 5px; }
 
-        /* Price boxes */
-        .price-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        /* Price boxes — 3 col inside left panel */
+        .price-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
         .price-box {
             background: var(--bg);
             border: 1px solid var(--border);
@@ -462,8 +468,22 @@
 
         .hidden { display: none !important; }
 
+        /* Bid panel (right column) */
+        .bid-panel {
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 80px;
+        }
+        .bid-panel .bidder-info { margin-bottom: 12px; }
+        .bid-panel .waiting-notice { margin-bottom: 12px; }
+        .bid-panel .calling-status { margin-bottom: 12px; }
+        .bid-panel .bid-btn { margin-bottom: 8px; }
+        .bid-panel .message-box { margin-bottom: 0; }
+
         @media (max-width: 900px) {
             .auction-grid { grid-template-columns: 1fr; }
+            .bid-panel { position: static; }
             .sidebar-card { position: static; }
         }
         @media (max-width: 600px) {
@@ -528,7 +548,7 @@
             <div class="property-label" id="propertyInfo">Property 1 of 5</div>
             <div class="auction-grid">
 
-                <!-- Property card -->
+                <!-- LEFT: Property image + info -->
                 <div class="property-card">
                     <div class="property-image-container">
                         <img id="propertyImageElement" class="property-image hidden" src="" alt="Property">
@@ -541,7 +561,6 @@
                             <span>📐 1302 sq.ft</span>
                             <span>💰 Market: RM 600,000</span>
                         </div>
-
                         <div class="price-grid">
                             <div class="price-box">
                                 <div class="price-label">Opening Bid</div>
@@ -556,34 +575,41 @@
                                 <div class="price-amount market" id="marketValue">RM 600,000</div>
                             </div>
                         </div>
-
-                        <div class="bidder-info">
-                            <div>
-                                <div class="bidder-label">Highest Bidder</div>
-                                <div class="bidder-name" id="highBidder">Waiting...</div>
-                            </div>
-                        </div>
-
-                        <div id="waitingNotice" class="waiting-notice hidden">
-                            <div class="waiting-notice-text">⏳ Waiting for bidding to start...</div>
-                        </div>
-
-                        <div id="callingStatusDiv" class="calling-status hidden">
-                            <div class="calling-text" id="callingText">1st Calling</div>
-                            <div class="calling-timer" id="callingTimer">10</div>
-                        </div>
-
-                        <button class="bid-btn" id="bidBtn" onclick="placeBid()">🔨 Place Bid</button>
-                        <div class="bid-info" id="bidInfoText">💡 Fixed increment: <strong style="color:var(--gold)">+RM 5,000</strong></div>
-                        <div id="messageBox" class="message-box hidden"></div>
                     </div>
                 </div>
 
-                <!-- Sidebar -->
-                <div class="sidebar-card">
-                    <div class="sidebar-title">👥 Leaderboard</div>
-                    <div class="bidders-list">
-                        <div id="biddersList" style="color:var(--muted);font-size:0.875rem;text-align:center;padding:20px 0">Waiting for bids...</div>
+                <!-- RIGHT: Bidding panel + leaderboard -->
+                <div class="bid-panel">
+
+                    <!-- Highest bidder -->
+                    <div class="bidder-info">
+                        <div>
+                            <div class="bidder-label">Highest Bidder</div>
+                            <div class="bidder-name" id="highBidder">Waiting...</div>
+                        </div>
+                    </div>
+
+                    <!-- Waiting / Calling status -->
+                    <div id="waitingNotice" class="waiting-notice hidden">
+                        <div class="waiting-notice-text">⏳ Waiting for bidding to start...</div>
+                    </div>
+
+                    <div id="callingStatusDiv" class="calling-status hidden">
+                        <div class="calling-text" id="callingText">1st Calling</div>
+                        <div class="calling-timer" id="callingTimer">10</div>
+                    </div>
+
+                    <!-- Bid button -->
+                    <button class="bid-btn" id="bidBtn" onclick="placeBid()">🔨 Place Bid</button>
+                    <div class="bid-info" id="bidInfoText">💡 Fixed increment: <strong style="color:var(--gold)">+RM 5,000</strong></div>
+                    <div id="messageBox" class="message-box hidden"></div>
+
+                    <!-- Leaderboard -->
+                    <div class="sidebar-card" style="margin-top:16px;">
+                        <div class="sidebar-title">👥 Leaderboard</div>
+                        <div class="bidders-list">
+                            <div id="biddersList" style="color:var(--muted);font-size:0.875rem;text-align:center;padding:20px 0">Waiting for bids...</div>
+                        </div>
                     </div>
                 </div>
 
