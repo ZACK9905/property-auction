@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KL Property Auction - Register</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
@@ -103,30 +104,36 @@
             background: var(--bg);
             overflow: hidden;
             position: relative;
+            display: flex;
+            flex-direction: column;
         }
         .property-option:hover { border-color: var(--gold-border); box-shadow: 0 4px 16px rgba(184,137,42,0.1); transform: translateY(-1px); }
         .property-option.selected { border-color: var(--gold); box-shadow: 0 4px 20px rgba(184,137,42,0.2); }
         .property-option.selected::after {
-            content: '✓';
+            content: '✓ Selected';
             position: absolute; top:10px; right:12px;
-            width:24px; height:24px;
             background: var(--gold); color:white;
-            border-radius:50%; display:flex; align-items:center; justify-content:center;
-            font-size:0.75rem; font-weight:700;
-            display:flex; align-items:center; justify-content:center;
+            border-radius:20px; padding:3px 10px;
+            font-size:0.72rem; font-weight:700;
         }
         .property-option.full { opacity:0.45; cursor:not-allowed; pointer-events:none; }
 
-        /* Property image */
+        /* Property image — full width, tall enough to show portrait photo */
         .prop-img-wrap {
-            width:100%; height:160px;
+            width: 100%;
+            height: 260px;
             background: var(--bg2);
-            overflow: hidden;
             display: flex; align-items:center; justify-content:center;
             font-size:3.5rem;
+            flex-shrink: 0;
         }
         .prop-img-wrap img {
-            width:100%; height:100%; object-fit:cover; display:block;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
         }
 
         /* Property info */
@@ -145,7 +152,7 @@
         .prop-stat-value { font-weight:600; color:var(--text); font-family:'DM Mono',monospace; font-size:0.82rem; }
         .prop-stat-value.gold { color:var(--gold); }
         .prop-footer {
-            padding:8px 16px 12px;
+            padding:4px 16px 12px;
             display:flex; align-items:center; justify-content:space-between;
             border-top:1px solid var(--border);
             margin-top:8px;
@@ -263,7 +270,8 @@
         #step2 { display:none; }
 
         @media(max-width:600px) {
-            .property-grid { grid-template-columns:1fr; }
+            .property-grid { grid-template-columns: 1fr; }
+            .prop-img-wrap { height: 220px; }
             .card { padding:24px 18px; }
             .logo h1 { font-size:1.9rem; }
         }
@@ -437,128 +445,40 @@ function backToStep1() {
     document.getElementById('stepItem2').className = 'step';
 }
 
-// ✅ 改进的 PIN 生成函数（使用 crypto）
 function generatePin() {
-    const array = new Uint32Array(1);
-    crypto.getRandomValues(array);
-    
-    let pin = String(array[0] % 9000 + 1000);
-    
-    while (pin === SYSTEM_PIN) {
-        crypto.getRandomValues(array);
-        pin = String(array[0] % 9000 + 1000);
-    }
-    
+    let pin;
+    do { pin = String(Math.floor(1000 + Math.random() * 9000)); } while (pin === SYSTEM_PIN);
     return pin;
 }
 
-// ✅ 改进的注册提交函数（修复 PIN 检查逻辑）
 async function submitRegistration() {
     const name = document.getElementById('fullNameInput').value.trim();
     const err = document.getElementById('step2Error');
-    
-    if (!name) { 
-        err.textContent = 'Please enter your full name.'; 
-        err.style.display = 'block'; 
-        return; 
-    }
-    
-    if (name.length < 3) { 
-        err.textContent = 'Please enter your full name (at least 3 characters).'; 
-        err.style.display = 'block'; 
-        return; 
-    }
-    
+    if (!name) { err.textContent = 'Please enter your full name.'; err.style.display = 'block'; return; }
+    if (name.length < 3) { err.textContent = 'Please enter your full name (at least 3 characters).'; err.style.display = 'block'; return; }
     err.style.display = 'none';
     const btn = document.getElementById('registerBtn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Registering...';
 
     try {
-        // 检查是否已注册
-        const { data: existing } = await sb
-            .from('registrations')
-            .select('id')
-            .eq('property_id', selectedPropertyId)
-            .ilike('full_name', name)
-            .single();
-        
-        if (existing) { 
-            err.textContent = `"${name}" is already registered for this property.`; 
-            err.style.display = 'block'; 
-            btn.disabled = false; 
-            btn.innerHTML = 'Register & Get PIN'; 
-            return; 
-        }
-        
-        // 检查房间是否已满
+        const { data: existing } = await sb.from('registrations').select('id').eq('property_id', selectedPropertyId).ilike('full_name', name).single();
+        if (existing) { err.textContent = `"${name}" is already registered for this property.`; err.style.display = 'block'; btn.disabled = false; btn.innerHTML = 'Register & Get PIN'; return; }
         const count = participantCounts[selectedPropertyId] || 0;
-        if (count >= 12) { 
-            err.textContent = 'This property is full (12/12). Please choose another.'; 
-            err.style.display = 'block'; 
-            btn.disabled = false; 
-            btn.innerHTML = 'Register & Get PIN'; 
-            return; 
-        }
+        if (count >= 12) { err.textContent = 'This property is full (12/12). Please choose another.'; err.style.display = 'block'; btn.disabled = false; btn.innerHTML = 'Register & Get PIN'; return; }
 
-        // ✅ 改进的 PIN 生成逻辑
-        let pin;
-        let attempts = 0;
-        const MAX_ATTEMPTS = 50;
-        
-        while (attempts < MAX_ATTEMPTS) {
+        let pin, attempts = 0;
+        while (attempts < 20) {
             pin = generatePin();
-            
-            // ✅ 正确的检查方式
-            const { data: pinCheck, error: pinError } = await sb
-                .from('registrations')
-                .select('id')
-                .eq('pin', pin)
-                .single();
-            
-            // 如果返回 PGRST116 错误，说明 PIN 不存在（可用）
-            if (pinError && pinError.code === 'PGRST116') {
-                break;
-            }
-            
+            const { data: pinExists } = await sb.from('registrations').select('id').eq('pin', pin).single();
+            if (!pinExists) break;
             attempts++;
         }
 
-        // 检查是否成功生成唯一 PIN
-        if (attempts >= MAX_ATTEMPTS) {
-            err.textContent = 'Failed to generate unique PIN. Please try again.';
-            err.style.display = 'block';
-            btn.disabled = false;
-            btn.innerHTML = 'Register & Get PIN';
-            return;
-        }
-
-        // 插入注册记录
-        const { error: insertError } = await sb
-            .from('registrations')
-            .insert([{ 
-                property_id: selectedPropertyId, 
-                full_name: name, 
-                pin: pin 
-            }]);
-        
-        if (insertError) {
-            // 处理唯一约束冲突
-            if (insertError.code === '23505') {
-                err.textContent = 'PIN conflict detected. Please try again.';
-            } else {
-                throw insertError;
-            }
-            err.style.display = 'block';
-            btn.disabled = false;
-            btn.innerHTML = 'Register & Get PIN';
-            return;
-        }
-        
+        const { error } = await sb.from('registrations').insert([{ property_id: selectedPropertyId, full_name: name, pin: pin }]);
+        if (error) throw error;
         showSuccess(name, pin);
-        
     } catch (e) {
-        console.error('Registration error:', e);
         err.textContent = 'Registration failed: ' + e.message;
         err.style.display = 'block';
         btn.disabled = false;
