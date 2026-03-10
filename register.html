@@ -118,20 +118,32 @@
         }
         .property-option.full { opacity:0.45; cursor:not-allowed; pointer-events:none; }
 
-        /* Property image — full width, tall enough to show portrait photo */
+        /* Property image — full width, portrait image fills height with blurred bg */
         .prop-img-wrap {
             width: 100%;
             height: 260px;
-            background: var(--bg2);
+            position: relative;
+            overflow: hidden;
             display: flex; align-items:center; justify-content:center;
             font-size:3.5rem;
             flex-shrink: 0;
         }
+        /* Blurred background fill */
+        .prop-img-wrap::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: var(--img-url);
+            background-size: cover;
+            background-position: center;
+            filter: blur(18px) brightness(0.7);
+            transform: scale(1.1);
+        }
         .prop-img-wrap img {
+            position: relative;
+            z-index: 1;
             max-width: 100%;
-            max-height: 100%;
+            height: 100%;
             width: auto;
-            height: auto;
             object-fit: contain;
             display: block;
         }
@@ -379,7 +391,7 @@ function renderPropertyGrid() {
         card.className = 'property-option' + (isFull ? ' full' : '') + (isSelected ? ' selected' : '');
         card.onclick = () => selectProperty(parseInt(id));
         card.innerHTML = `
-            <div class="prop-img-wrap">
+            <div class="prop-img-wrap" style="--img-url:url('${info.imageUrl}')">
                 <img src="${info.imageUrl}" alt="${info.address}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <span style="display:none;font-size:3.5rem;width:100%;height:100%;align-items:center;justify-content:center">${info.emoji}</span>
             </div>
