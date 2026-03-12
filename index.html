@@ -693,6 +693,9 @@ function proceedToAuction() {
     // Pre-sync currentProperty to registered property so first loadData doesn't trigger false switch
     if (userPropertyId) currentProperty = userPropertyId;
 
+    // Polling fallback in case Realtime drops
+    setInterval(loadData, 3000);
+
     loadData();
 }
 
@@ -744,7 +747,8 @@ async function loadData(){
 
         if (!currentPropertyObj) return;
 
-        const { data: biddersData } = await sb.from('bidders').select('*').eq('property_id', currentProperty).order('id', { ascending: false });
+        const { data: biddersData, error: biddersErr } = await sb.from('bidders').select('*').eq('property_id', currentProperty).order('id', { ascending: false });
+        if (biddersErr) console.error('Bidders fetch error:', biddersErr);
         bidders = biddersData || [];
 
         updateUI();
@@ -937,12 +941,16 @@ function updateBidders() {
         return;
     }
     const map = {};
-    bidders.forEach(b => { if (!map[b.bidder_name] || b.bid_amount > map[b.bidder_name]) map[b.bidder_name] = b.bid_amount; });
+    bidders.forEach(b => {
+        const name = b.bidder_name || b.name || 'Unknown';
+        const amt = Number(b.amount || b.bid_amount || 0);
+        if (!map[name] || amt > map[name]) map[name] = amt;
+    });
     const sorted = Object.entries(map).map(([name,amount])=>({name,amount})).sort((a,b)=>b.amount-a.amount);
     document.getElementById('biddersList').innerHTML = sorted.map((b,i) =>
         `<div class="bidder-item">
             <span class="bidder-item-name">${i===0?'🥇 ':''}${i+1}. ${b.name}</span>
-            <span class="bidder-item-amount">RM ${b.amount.toLocaleString()}</span>
+            <span class="bidder-item-amount">RM ${Number(b.amount).toLocaleString()}</span>
         </div>`).join('');
 }
 
