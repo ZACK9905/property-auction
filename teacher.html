@@ -457,21 +457,32 @@ async function resetAllProperties() {
 function startFullAutoMode() {
     stopAutoMode();
     document.getElementById('autoModeBadge').classList.remove('hidden');
-    let lastBidPrice = null; // track bids to reset stage on new bid
+    let lastBidCount = null; // track number of bids, not price
     autoModeInterval = setInterval(async () => {
         await loadData();
-        loadBidHistory(); // refresh bid history every tick
+        loadBidHistory();
         const prop = allProperties[selectedProperty];
         if (!prop || prop.status === 'sold' || !prop.bidding_started) { stopAutoMode(); return; }
 
-        // Detect new bid — reset to stage 1 with 10s timer
-        if (prop.stage > 0 && lastBidPrice !== null && prop.current_price > lastBidPrice) {
-            lastBidPrice = prop.current_price;
+        // Count actual bids in bidders table for this property
+        const { count: bidCount } = await sb.from('bidders')
+            .select('id', { count: 'exact', head: true })
+            .eq('property_id', selectedProperty);
+        const currentBidCount = bidCount || 0;
+
+        // First tick: just record current count
+        if (lastBidCount === null) {
+            lastBidCount = currentBidCount;
+        }
+
+        // New bid detected = bid count increased
+        if (prop.stage > 0 && currentBidCount > lastBidCount) {
+            lastBidCount = currentBidCount;
             await sb.from('properties').update({ stage:1, timer:10 }).eq('id', selectedProperty);
             document.getElementById('autoModeDetail').textContent = 'New bid! Back to 1st Calling';
             return;
         }
-        lastBidPrice = prop.current_price;
+        lastBidCount = currentBidCount;
 
         if (prop.silent_countdown > 0) {
             document.getElementById('autoModeDetail').textContent = 'Silent: ' + prop.silent_countdown + 's';
