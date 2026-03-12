@@ -517,13 +517,14 @@ function stopAutoMode() {
 
 async function loadBidHistory() {
     const el = document.getElementById('bidHistory');
-    const { data } = await sb.from('bidders').select('*').eq('property_id', selectedProperty).order('id', { ascending:false }).limit(20);
+    const { data, error } = await sb.from('bidders').select('*').eq('property_id', selectedProperty).order('id', { ascending:false }).limit(50);
+    if (error) { console.error('bidHistory error:', error); el.innerHTML = '<div style="color:red;padding:12px">Error: ' + error.message + '</div>'; return; }
     document.getElementById('totalBids').textContent = (data||[]).length + ' bids';
     if (!data || data.length === 0) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px 0">No bids yet</div>'; return; }
     el.innerHTML = data.map((b,i) =>
-        '<div class="bid-row"><div><div class="bid-name">' + (i===0?'🥇 ':'') + b.bidder_name + '</div>' +
+        '<div class="bid-row"><div><div class="bid-name">' + (i===0?'🥇 ':'') + (b.bidder_name||b.name||'Unknown') + '</div>' +
         '<div class="bid-time">' + new Date(b.created_at||Date.now()).toLocaleTimeString('en-MY') + '</div></div>' +
-        '<div class="bid-amount">RM ' + Number(b.amount||0).toLocaleString() + '</div></div>'
+        '<div class="bid-amount">RM ' + Number(b.amount||b.bid_amount||0).toLocaleString() + '</div></div>'
     ).join('');
 }
 
