@@ -689,6 +689,10 @@ function proceedToAuction() {
     sb.channel('properties-changes').on('postgres_changes',{event:'*',schema:'public',table:'properties'},()=>loadData()).subscribe();
     sb.channel('bidders-changes').on('postgres_changes',{event:'*',schema:'public',table:'bidders'},()=>loadData()).subscribe();
     sb.channel('participants-changes').on('postgres_changes',{event:'*',schema:'public',table:'participants'},()=>loadData()).subscribe();
+
+    // Pre-sync currentProperty to registered property so first loadData doesn't trigger false switch
+    if (userPropertyId) currentProperty = userPropertyId;
+
     loadData();
 }
 
@@ -707,9 +711,12 @@ async function loadData(){
             soldAlreadyShown = false;
             hideSoldOverlay();
 
-            // Re-check join status for new property
+            // Update join status for new property
             if (userName && !isSystemAccount) {
                 if (userPropertyId === biddingNow.id) {
+                    // Student is registered for this property
+                    // Don't re-insert — they already joined at login
+                    // Just ensure participants row exists
                     try {
                         const { data: existing } = await sb.from('participants').select('id')
                             .eq('property_id', userPropertyId).eq('participant_name', userName).single();
@@ -719,13 +726,20 @@ async function loadData(){
                     } catch(e) {}
                     hasJoinedCurrentProperty = true;
                 } else {
+                    // Registered for a different property — observer here
                     hasJoinedCurrentProperty = false;
                 }
             }
+            // isSystemAccount: hasJoinedCurrentProperty stays true always
         } else {
-            // Stay on current property — just refresh the object
+            // Same property — just refresh the object
             const updated = allProps.find(p => p.id === currentProperty);
             if (updated) currentPropertyObj = updated;
+
+            // If student is registered for current property, make sure hasJoined is true
+            if (userName && !isSystemAccount && userPropertyId === currentProperty && !hasJoinedCurrentProperty) {
+                hasJoinedCurrentProperty = true;
+            }
         }
 
         if (!currentPropertyObj) return;
