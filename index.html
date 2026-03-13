@@ -784,7 +784,7 @@ async function placeBid(){
         playBidSound();
         const { error: propErr } = await sb.from('properties').update({ current_price: bid, highest_bidder: userName }).eq('id', currentProperty);
         if (propErr) { showMessage('Bid failed: ' + propErr.message, true); return; }
-        const { error: bidErr } = await sb.from('bidders').insert([{ property_id: currentProperty, bidder_name: userName, bid_amount: bid, amount: bid }]);
+        const { error: bidErr } = await sb.from('bidders').insert([{ property_id: currentProperty, bidder_name: userName, bid_amount: bid }]);
         if (bidErr) console.error('Bid history error:', bidErr);
         showMessage(`✓ ${userName} bid RM ${bid.toLocaleString()}`);
         await loadData();
@@ -943,7 +943,7 @@ function updateBidders() {
     const map = {};
     bidders.forEach(b => {
         const name = b.bidder_name || b.name || 'Unknown';
-        const amt = Number(b.amount || b.bid_amount || 0);
+        const amt = Number(b.bid_amount || 0);
         if (!map[name] || amt > map[name]) map[name] = amt;
     });
     const sorted = Object.entries(map).map(([name,amount])=>({name,amount})).sort((a,b)=>b.amount-a.amount);
