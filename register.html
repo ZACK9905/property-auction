@@ -278,6 +278,16 @@
         }
         .copy-btn:hover { background:rgba(30,95,168,0.18); }
 
+        /* ✅ 新增：限制提示 */
+        .limit-notice {
+            background:rgba(192,57,43,0.08); border:1px solid rgba(192,57,43,0.2);
+            border-radius:10px; padding:14px 18px; margin-bottom:20px;
+            display:flex; align-items:start; gap:12px;
+        }
+        .limit-notice-icon { font-size:1.5rem; flex-shrink:0; }
+        .limit-notice-text { flex:1; font-size:0.875rem; color:var(--text); line-height:1.5; }
+        .limit-notice-text strong { color:var(--red); }
+
         #step1 { display:block; }
         #step2 { display:none; }
 
@@ -312,6 +322,15 @@
     <div class="card" id="step1">
         <div class="card-title">Choose a Property</div>
         <div class="card-sub">Select the property you'd like to bid on. Maximum 12 participants per property.</div>
+        
+        <!-- ✅ 新增：限制提示 -->
+        <div class="limit-notice">
+            <div class="limit-notice-icon">⚠️</div>
+            <div class="limit-notice-text">
+                <strong>Important:</strong> You can only register for <strong>ONE property</strong>. Once registered, you cannot change or register for another property. Choose carefully!
+            </div>
+        </div>
+        
         <div class="property-grid" id="propertyGrid"><!-- JS --></div>
         <div class="error-msg" id="step1Error"></div>
         <br>
@@ -343,12 +362,21 @@
         </div>
         <div class="info-row"><span class="info-key">Name</span><span class="info-val" id="successName"></span></div>
         <div class="info-row"><span class="info-key">Property</span><span class="info-val gold" id="successProperty"></span></div>
+        
+        <!-- ✅ 新增：一次性注册提示 -->
+        <div class="limit-notice" style="margin-top:20px;margin-bottom:20px;">
+            <div class="limit-notice-icon">✓</div>
+            <div class="limit-notice-text">
+                You are registered for <strong>Property <span id="finalPropertyNum"></span></strong>. This registration is <strong>final</strong> and cannot be changed.
+            </div>
+        </div>
+        
         <div class="url-box">
             <span class="url-text">https://property-auction.vercel.app/</span>
             <button class="copy-btn" onclick="copyUrl()">Copy Link</button>
         </div>
         <button class="btn" onclick="window.location.href='https://property-auction.vercel.app/'">Go to Auction →</button>
-        <button class="btn-outline" onclick="registerAnother()">Register Another Person</button>
+        <!-- ✅ 移除了 "Register Another Person" 按钮 -->
     </div>
 </div>
 
@@ -505,6 +533,7 @@ function showSuccess(name, pin) {
     document.getElementById('pinDigits').innerHTML = pin.split('').map(d => `<div class="pin-digit">${d}</div>`).join('');
     document.getElementById('successName').textContent = name;
     document.getElementById('successProperty').textContent = `Property ${selectedPropertyId} — ${propertyInfo[selectedPropertyId].address}`;
+    document.getElementById('finalPropertyNum').textContent = selectedPropertyId;
 }
 
 function copyUrl() {
@@ -515,17 +544,7 @@ function copyUrl() {
     });
 }
 
-function registerAnother() {
-    selectedPropertyId = null;
-    document.getElementById('fullNameInput').value = '';
-    document.getElementById('successPage').style.display = 'none';
-    document.getElementById('step1').style.display = 'block';
-    document.getElementById('stepsBar').style.display = 'flex';
-    document.getElementById('stepItem1').className = 'step active';
-    document.getElementById('stepItem2').className = 'step';
-    document.getElementById('stepItem3').className = 'step';
-    loadParticipantCounts();
-}
+// ✅ 移除了 registerAnother() 函数
 
 document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && document.getElementById('step2').style.display !== 'none') submitRegistration();
