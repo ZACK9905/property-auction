@@ -388,7 +388,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const AUCTION_URL = 'https://property-auction.vercel.app/';
 const SYSTEM_PIN = '0000';
 
-const propertyInfo = {
+let propertyInfo = {
     1: { address:'Taman Puteri Subang', imageUrl:'puterisubang.png', emoji:'🏠', openingBid:450000, marketValue:600000, area:'1302 sq.ft', increment:2000 },
     2: { address:'Setia Alam', imageUrl:'setiaalam.png', emoji:'🏡', openingBid:550000, marketValue:750000, area:'1173.28 sq.ft', increment:2000 },
     3: { address:'Taman TTDI Shah Alam', imageUrl:'TTDI.png', emoji:'🏰', openingBid:688500, marketValue:950000, area:'1496 sq.ft', increment:5000 },
