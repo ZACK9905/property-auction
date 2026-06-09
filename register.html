@@ -399,6 +399,35 @@ let propertyInfo = {
 let selectedPropertyId = null;
 let participantCounts = {};
 
+    async function loadPropertyCatalog() {
+    const { data, error } = await sb
+        .from('property_catalog')
+        .select('*')
+        .order('id');
+
+    if (error || !data) {
+        console.error(error);
+        return;
+    }
+
+    const newInfo = {};
+
+    data.forEach(p => {
+        newInfo[p.id] = {
+            address: p.address,
+            imageUrl: p.image_url,
+            emoji: '🏠',
+            openingBid: p.opening_bid,
+            marketValue: p.market_value,
+            area: p.area,
+            increment: p.increment,
+            description: p.description
+        };
+    });
+
+    propertyInfo = newInfo;
+}
+
 async function loadParticipantCounts() {
     const { data } = await sb.from('registrations').select('property_id');
     participantCounts = {};
@@ -550,7 +579,10 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && document.getElementById('step2').style.display !== 'none') submitRegistration();
 });
 
-loadParticipantCounts();
+(async () => {
+    await loadPropertyCatalog();
+    await loadParticipantCounts();
+})();
 </script>
 </body>
 </html>
