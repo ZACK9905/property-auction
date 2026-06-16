@@ -995,7 +995,10 @@ function updateParticipants() {
 
 document.getElementById('userPinInput').addEventListener('keypress', e => { if (e.key === 'Enter') joinAuction(); });
 
-loadData();
+(async () => {
+    await loadPropertyCatalog();
+    await loadData();
+})();
 </script>
 </body>
 </html>
