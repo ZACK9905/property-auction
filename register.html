@@ -533,7 +533,7 @@ async function submitRegistration() {
     btn.innerHTML = '<span class="spinner"></span>Registering...';
 
     try {
-        const { data: existing } = await sb.from('registrations').select('id').eq('property_id', selectedPropertyId).ilike('full_name', name).single();
+        const { data: existing } = await sb.from('registrations').select('id').eq('property_id', selectedPropertyId).ilike('full_name', name).maybeSingle();
         if (existing) { err.textContent = `"${name}" is already registered for this property.`; err.style.display = 'block'; btn.disabled = false; btn.innerHTML = 'Register & Get PIN'; return; }
         const count = participantCounts[selectedPropertyId] || 0;
         if (count >= 12) { err.textContent = 'This property is full (12/12). Please choose another.'; err.style.display = 'block'; btn.disabled = false; btn.innerHTML = 'Register & Get PIN'; return; }
@@ -541,7 +541,7 @@ async function submitRegistration() {
         let pin, attempts = 0;
         while (attempts < 20) {
             pin = generatePin();
-            const { data: pinExists } = await sb.from('registrations').select('id').eq('pin', pin).single();
+            const { data: pinExists } = await sb.from('registrations').select('id').eq('pin', pin).maybeSingle();
             if (!pinExists) break;
             attempts++;
         }
