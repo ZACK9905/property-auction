@@ -624,13 +624,47 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const MAX_PARTICIPANTS = 12;
-const propertyInfo = {
+let propertyInfo = {
     1: { address:'Taman Puteri Subang', image:'🏠', imageUrl:'puterisubang.png', openingBid:450000, increment:2000, description:'Popular residential area', area:'1302 sq.ft', marketValue:600000 },
     2: { address:'Setia Alam', image:'🏡', imageUrl:'setiaalam.png', openingBid:550000, increment:2000, description:'Modern family home', area:'1173.28 sq.ft', marketValue:750000 },
     3: { address:'Taman TTDI Shah Alam', image:'🏰', imageUrl:'TTDI.png', openingBid:688500, increment:5000, description:'Premium residential area', area:'1496 sq.ft', marketValue:950000 },
     4: { address:'Bandar Mahkota Cheras', image:'🏘️', imageUrl:'cheras.png', openingBid:486000, increment:3000, description:'Urban convenience', area:'1302 sq.ft', marketValue:650000 },
     5: { address:'Taman Subang Murni', image:'🌳', imageUrl:'subangmurni.png', openingBid:445000, increment:3000, description:'Established community', area:'1650 sq.ft', marketValue:600000 }
 };
+const STORAGE_BASE =
+'https://ubxfggqfnhvqyatgiolx.supabase.co/storage/v1/object/public/property-images/';
+
+async function loadPropertyCatalog() {
+
+    const { data, error } = await sb
+        .from('property_catalog')
+        .select('*')
+        .order('id');
+
+    if (error || !data) {
+        console.error('property_catalog error:', error);
+        return;
+    }
+
+    const newInfo = {};
+
+    data.forEach(p => {
+        newInfo[p.id] = {
+            address: p.address,
+            image: '🏠',
+            imageUrl: STORAGE_BASE + p.image_url,
+            openingBid: p.opening_bid,
+            increment: p.increment,
+            description: p.description,
+            area: p.area,
+            marketValue: p.market_value
+        };
+    });
+
+    propertyInfo = newInfo;
+
+    console.log('property_catalog loaded');
+}
 
 let userName = '';
 let currentProperty = 1;
