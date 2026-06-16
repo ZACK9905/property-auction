@@ -187,11 +187,6 @@
             <div class="card-title">Current Property</div>
             <div class="prop-select">
                 <select id="propertySelect" onchange="switchProperty()">
-                    <option value="1">Property 1 — Taman Puteri Subang</option>
-                    <option value="2">Property 2 — Setia Alam</option>
-                    <option value="3">Property 3 — Taman TTDI Shah Alam</option>
-                    <option value="4">Property 4 — Bandar Mahkota Cheras</option>
-                    <option value="5">Property 5 — Taman Subang Murni</option>
                 </select>
             </div>
             <div class="stage-bar">
@@ -291,11 +286,9 @@ async function teacherDelete(table, filter) {
 let selectedProperty = 1;
 let allProperties = {};
 let autoModeInterval = null;
-
-const openingBids = { 1:450000, 2:550000, 3:688500, 4:486000, 5:445000 };
-let propNames = { 1:'Taman Puteri Subang', 2:'Setia Alam', 3:'Taman TTDI Shah Alam', 4:'Bandar Mahkota Cheras', 5:'Taman Subang Murni' };
-
-    async function loadPropertyCatalog() {
+let propertyCatalog = {};
+    
+async function loadPropertyCatalog() {
 
     const { data, error } = await sb
         .from('property_catalog')
@@ -309,8 +302,23 @@ let propNames = { 1:'Taman Puteri Subang', 2:'Setia Alam', 3:'Taman TTDI Shah Al
 
     const newNames = {};
 
+    propertyCatalog = {};
+
     data.forEach(p => {
+
         newNames[p.id] = p.address;
+
+        propertyCatalog[p.id] = {
+            id: p.id,
+            name: p.property_name,
+            address: p.address,
+            openingBid: p.opening_bid,
+            marketValue: p.market_value,
+            increment: p.increment,
+            area: p.area,
+            imageUrl: p.image_url
+        };
+
     });
 
     propNames = newNames;
@@ -418,7 +426,7 @@ function renderPropList() {
             const badgeText = isSold ? 'SOLD' : isLive ? 'LIVE' : 'Open';
             return '<div class="prop-row ' + (isSelected?'active-prop ':'') + (isSold?'sold-prop':'') + '" onclick="selectProp(' + id + ')">' +
                 '<div class="prop-num">' + id + '</div>' +
-                '<div class="prop-info"><div class="prop-name">' + propNames[id] + '</div>' +
+                '<div class="prop-info"><div class="prop-name">' +(propertyCatalog[id]?.address || ('Property ' + id))+'</div> +
                 '<div class="prop-price">RM ' + Number(prop.current_price||0).toLocaleString() + (prop.highest_bidder ? ' · ' + prop.highest_bidder : '') + '</div></div>' +
                 '<div class="prop-badge ' + badgeClass + '">' + badgeText + '</div></div>';
         }).join('');
@@ -485,14 +493,28 @@ async function resetAllProperties() {
         stopAutoMode();
         await teacherDelete('bidders',      { field:'id', op:'neq', value:0 });
         await teacherDelete('participants', { field:'id', op:'neq', value:0 });
-        for (const id of [1,2,3,4,5]) {
-            await sb.from('properties').update({
-                current_price:openingBids[id], highest_bidder:null,
-                stage:0, timer:0, status:'open', bidding_started:false,
-                silent_countdown:0, release_next:false, release_by:null,
-                release_at:null, sold_at:null, opened_by_teacher:false, participant_count:0
-            }).eq('id', id);
-        }
+        for (const id in propertyCatalog) {
+
+    await sb.from('properties').update({
+
+        current_price:
+            propertyCatalog[id].opening_bid,
+
+        highest_bidder:null,
+        stage:0,
+        timer:0,
+        status:'open',
+        bidding_started:false,
+        silent_countdown:0,
+        release_next:false,
+        release_by:null,
+        release_at:null,
+        sold_at:null,
+        opened_by_teacher:false,
+        participant_count:0
+
+    }).eq('id', id);
+}
         selectedProperty = 1;
         document.getElementById('propertySelect').value = '1';
         showMessage('✓ All properties reset successfully');
@@ -583,7 +605,8 @@ async function loadRegistrations() {
     const grouped = {};
     data.forEach(r => { if (!grouped[r.property_id]) grouped[r.property_id] = []; grouped[r.property_id].push(r); });
     el.innerHTML = Object.entries(grouped).map(([pid, regs]) =>
-        '<div style="margin-bottom:16px"><div style="font-size:.75rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Property ' + pid + ' — ' + propNames[pid] + ' <span style="color:var(--muted);font-weight:400">(' + regs.length + '/12)</span></div>' +
+        '<div style="margin-bottom:16px"><div style="font-size:.75rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Property ' + pid + ' — ' +
+(propertyCatalog[pid]?.address || ('Property ' + pid)) + ' <span style="color:var(--muted);font-weight:400">(' + regs.length + '/12)</span></div>' +
         '<table class="reg-table"><thead><tr><th>#</th><th>Name</th><th>PIN</th><th></th></tr></thead><tbody>' +
         regs.map((r,i) =>
             '<tr><td style="color:var(--muted)">' + (i+1) + '</td><td style="color:white;font-weight:500">' + r.full_name + '</td>' +
@@ -637,7 +660,6 @@ function checkPassword() {
 }
 
 async function initApp() {
-
     await loadPropertyCatalog();
 
     loadData();
