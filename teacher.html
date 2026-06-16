@@ -424,11 +424,28 @@ function renderPropList() {
             const isLive = prop.bidding_started && !isSold;
             const badgeClass = isSold ? 'badge-sold' : isLive ? 'badge-live' : 'badge-open';
             const badgeText = isSold ? 'SOLD' : isLive ? 'LIVE' : 'Open';
-            return '<div class="prop-row ' + (isSelected?'active-prop ':'') + (isSold?'sold-prop':'') + '" onclick="selectProp(' + id + ')">' +
-                '<div class="prop-num">' + id + '</div>' +
-                '<div class="prop-info"><div class="prop-name">' +(propertyCatalog[id]?.address || ('Property ' + id))+'</div> +
-                '<div class="prop-price">RM ' + Number(prop.current_price||0).toLocaleString() + (prop.highest_bidder ? ' · ' + prop.highest_bidder : '') + '</div></div>' +
-                '<div class="prop-badge ' + badgeClass + '">' + badgeText + '</div></div>';
+            return '<div class="prop-row ' +
+    (isSelected ? 'active-prop ' : '') +
+    (isSold ? 'sold-prop' : '') +
+    '" onclick="selectProp(' + id + ')">' +
+
+    '<div class="prop-num">' + id + '</div>' +
+
+    '<div class="prop-info">' +
+        '<div class="prop-name">' +
+            (propertyCatalog[id]?.address || ('Property ' + id)) +
+        '</div>' +
+        '<div class="prop-price">RM ' +
+            Number(prop.current_price || 0).toLocaleString() +
+            (prop.highest_bidder ? ' · ' + prop.highest_bidder : '') +
+        '</div>' +
+    '</div>' +
+
+    '<div class="prop-badge ' + badgeClass + '">' +
+        badgeText +
+    '</div>' +
+
+'</div>';
         }).join('');
 }
 
