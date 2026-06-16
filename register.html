@@ -387,6 +387,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const AUCTION_URL = 'https://property-auction.vercel.app/';
 const SYSTEM_PIN = '0000';
+const STORAGE_BASE =
+'https://ubxfggqfnhvqyatgiolx.supabase.co/storage/v1/object/public/property-images/';
 
 let propertyInfo = {
     1: { address:'Taman Puteri Subang', imageUrl:'puterisubang.png', emoji:'🏠', openingBid:450000, marketValue:600000, area:'1302 sq.ft', increment:2000 },
@@ -415,7 +417,7 @@ let participantCounts = {};
     data.forEach(p => {
         newInfo[p.id] = {
             address: p.address,
-            imageUrl: p.image_url,
+            imageUrl: STORAGE_BASE + p.image_url,
             emoji: '🏠',
             openingBid: p.opening_bid,
             marketValue: p.market_value,
