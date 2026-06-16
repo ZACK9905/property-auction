@@ -293,8 +293,55 @@ let allProperties = {};
 let autoModeInterval = null;
 
 const openingBids = { 1:450000, 2:550000, 3:688500, 4:486000, 5:445000 };
-const propNames = { 1:'Taman Puteri Subang', 2:'Setia Alam', 3:'Taman TTDI Shah Alam', 4:'Bandar Mahkota Cheras', 5:'Taman Subang Murni' };
+let propNames = { 1:'Taman Puteri Subang', 2:'Setia Alam', 3:'Taman TTDI Shah Alam', 4:'Bandar Mahkota Cheras', 5:'Taman Subang Murni' };
 
+    async function loadPropertyCatalog() {
+
+    const { data, error } = await sb
+        .from('property_catalog')
+        .select('*')
+        .order('id');
+
+    if (error || !data) {
+        console.error(error);
+        return;
+    }
+
+    const newNames = {};
+
+    data.forEach(p => {
+        newNames[p.id] = p.address;
+    });
+
+    propNames = newNames;
+
+    populatePropertyDropdown();
+
+    console.log('teacher property catalog loaded');
+}
+    function populatePropertyDropdown() {
+
+    const select =
+        document.getElementById('propertySelect');
+
+    if (!select) return;
+
+    select.innerHTML = '';
+
+    Object.entries(propNames)
+        .sort((a,b)=>a[0]-b[0])
+        .forEach(([id,name]) => {
+
+            const option =
+                document.createElement('option');
+
+            option.value = id;
+            option.textContent =
+                `Property ${id} — ${name}`;
+
+            select.appendChild(option);
+        });
+}
 async function loadData() {
     try {
         const { data, error } = await sb.from('properties').select('*').order('id');
@@ -589,16 +636,30 @@ function checkPassword() {
     }
 }
 
-function initApp() {
+async function initApp() {
+
+    await loadPropertyCatalog();
+
     loadData();
     loadBidHistory();
     loadRegistrations();
+
     setInterval(loadData, 1000);
     setInterval(loadBidHistory, 2000);
     setInterval(loadRegistrations, 15000);
+
     sb.channel('prop-changes')
-        .on('postgres_changes', { event:'*', schema:'public', table:'properties' }, () => { loadData(); loadBidHistory(); })
-        .on('postgres_changes', { event:'INSERT', schema:'public', table:'bidders' }, () => { loadBidHistory(); })
+        .on('postgres_changes',
+            { event:'*', schema:'public', table:'properties' },
+            () => {
+                loadData();
+                loadBidHistory();
+            })
+        .on('postgres_changes',
+            { event:'INSERT', schema:'public', table:'bidders' },
+            () => {
+                loadBidHistory();
+            })
         .subscribe();
 }
 
