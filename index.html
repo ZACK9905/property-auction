@@ -694,14 +694,14 @@ async function joinAuction(){
         hasJoinedCurrentProperty = true; proceedToAuction(); return;
     }
 
-    const { data: reg, error: regErr } = await sb.from('registrations').select('*').eq('pin', pin).single();
+    const { data: reg, error: regErr } = await sb.from('registrations').select('*').eq('pin', pin).maybeSingle();
     if (regErr || !reg) { pinErr.textContent = 'Invalid PIN. Please check and try again.'; pinErr.style.display = 'block'; return; }
     if (reg.full_name.toLowerCase() !== nameInput.toLowerCase()) { pinErr.textContent = 'Name does not match this PIN.'; pinErr.style.display = 'block'; return; }
 
     userName = reg.full_name; userPropertyId = reg.property_id;
 
     try {
-        const { data: existing } = await sb.from('participants').select('id').eq('property_id', userPropertyId).eq('participant_name', userName).single();
+        const { data: existing } = await sb.from('participants').select('id').eq('property_id', userPropertyId).eq('participant_name', userName).maybeSingle();
         if (existing) { hasJoinedCurrentProperty = true; proceedToAuction(); return; }
         const { error } = await sb.from('participants').insert([{ property_id: userPropertyId, participant_name: userName, is_active: true }]);
         if (error) {
@@ -756,7 +756,7 @@ async function loadData(){
                     // Just ensure participants row exists
                     try {
                         const { data: existing } = await sb.from('participants').select('id')
-                            .eq('property_id', userPropertyId).eq('participant_name', userName).single();
+                            .eq('property_id', userPropertyId).eq('participant_name', userName).maybeSingle();
                         if (!existing) {
                             await sb.from('participants').insert([{ property_id: userPropertyId, participant_name: userName, is_active: true }]);
                         }
