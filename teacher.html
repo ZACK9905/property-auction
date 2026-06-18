@@ -272,6 +272,56 @@
                     <button class="btn-sm btn-sm-blue" onclick="loadRegistrations()">↻ Refresh</button>
                     <button class="btn-sm btn-sm-red" onclick="clearAllRegistrations()">Clear All</button>
                 </div>
+                <div class="card">
+
+    <div class="section-header">
+        <div class="section-title">
+            Property Catalog Management
+        </div>
+    </div>
+
+    <div style="margin-bottom:12px">
+
+        <input
+            type="file"
+            id="catalogFile"
+            accept=".csv">
+
+    </div>
+
+    <div style="display:flex;gap:10px">
+
+        <button
+            class="btn-sm btn-sm-blue"
+            onclick="previewCatalog()">
+
+            Preview CSV
+
+        </button>
+
+        <button
+            class="btn-sm btn-sm-red"
+            onclick="uploadCatalog()">
+
+            Update Catalog
+
+        </button>
+
+    </div>
+
+    <div
+        id="catalogPreview"
+        style="
+            margin-top:15px;
+            color:var(--muted);
+            font-size:.8rem;
+        ">
+
+        No file selected
+
+    </div>
+
+</div>
             </div>
             <div id="registrationList" style="color:var(--muted);font-size:.85rem;text-align:center;padding:20px 0">Loading...</div>
         </div>
