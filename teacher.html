@@ -801,9 +801,29 @@ async function previewCatalog() {
             const obj = {};
 
             headers.forEach((h,i) => {
-                obj[h.trim()] =
-                    values[i]?.trim() || '';
-            });
+
+    const key =
+        h.trim();
+
+    let value =
+        values[i]?.trim() || '';
+
+    if (
+        [
+            'id',
+            'opening_bid',
+            'market_value',
+            'increment',
+            'sort_order'
+        ].includes(key)
+    ) {
+        value =
+            Number(value || 0);
+    }
+
+    obj[key] = value;
+
+});
 
             return obj;
 
