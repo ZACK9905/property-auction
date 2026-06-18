@@ -196,6 +196,29 @@
                 <div class="stage-item" id="stage3rd">3rd Calling</div>
                 <div class="stage-item" id="stageSold">SOLD</div>
             </div>
+            <div class="status-grid" style="margin-bottom:16px">
+    <div class="stat-box">
+        <div class="stat-label">Address</div>
+        <div class="stat-value" id="propertyAddress">-</div>
+    </div>
+
+    <div class="stat-box">
+        <div class="stat-label">Area</div>
+        <div class="stat-value" id="propertyArea">-</div>
+    </div>
+
+    <div class="stat-box">
+        <div class="stat-label">Market Value</div>
+        <div class="stat-value gold" id="propertyMarketValue">-</div>
+    </div>
+</div>
+
+<div class="status-grid" style="margin-bottom:20px">
+    <div class="stat-box">
+        <div class="stat-label">Bid Increment</div>
+        <div class="stat-value orange" id="propertyIncrement">-</div>
+    </div>
+</div>
             <div class="bid-display">
                 <div>
                     <div class="bid-display-label">Current Bid</div>
@@ -375,6 +398,25 @@ function updateDisplay() {
     document.getElementById('currentBid').textContent = 'RM ' + Number(prop.current_price||0).toLocaleString();
     document.getElementById('currentBidder').textContent = prop.highest_bidder || 'Waiting for bids...';
     document.getElementById('participantCount').textContent = (prop.participant_count||0) + '/12';
+    document.getElementById('propertyAddress')
+    .textContent =
+    catalog?.address || '-';
+
+document.getElementById('propertyArea')
+    .textContent =
+    catalog?.area || '-';
+
+document.getElementById('propertyMarketValue')
+    .textContent =
+    'RM ' +
+    Number(catalog?.marketValue || 0)
+        .toLocaleString();
+
+document.getElementById('propertyIncrement')
+    .textContent =
+    'RM ' +
+    Number(catalog?.increment || 0)
+        .toLocaleString();
 
     const statusEl = document.getElementById('currentStatus');
     if (prop.status === 'sold') { statusEl.textContent = 'SOLD'; statusEl.className = 'stat-value red'; }
