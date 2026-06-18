@@ -360,6 +360,7 @@ let selectedProperty = 1;
 let allProperties = {};
 let autoModeInterval = null;
 let propertyCatalog = {};
+let uploadedCatalogData = [];
     
 async function loadPropertyCatalog() {
 
@@ -787,9 +788,56 @@ function previewCatalog() {
 }
 async function uploadCatalog() {
 
-    alert(
-        'Upload function coming next'
-    );
+    const file =
+        document.getElementById('catalogFile')
+        .files[0];
+
+    if (!file) {
+        alert('Please choose a CSV file');
+        return;
+    }
+
+    const text =
+        await file.text();
+
+    const rows =
+        text.trim().split('\n');
+
+    const headers =
+        rows[0].split(',');
+
+    uploadedCatalogData =
+        rows.slice(1).map(row => {
+
+            const values =
+                row.split(',');
+
+            const obj = {};
+
+            headers.forEach((h,i) => {
+                obj[h.trim()] =
+                    values[i]?.trim() || '';
+            });
+
+            return obj;
+
+        });
+
+    document.getElementById(
+        'catalogPreview'
+    ).innerHTML =
+        `
+        <strong>
+            ${uploadedCatalogData.length}
+            records loaded
+        </strong>
+        <br><br>
+        ${JSON.stringify(
+            uploadedCatalogData.slice(0,3),
+            null,
+            2
+        )}
+        `;
 
 }
 async function initApp() {
