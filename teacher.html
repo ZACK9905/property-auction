@@ -771,25 +771,8 @@ function checkPassword() {
         document.getElementById('gateInput').focus();
     }
 }
-function previewCatalog() {
-
-    const file =
-        document.getElementById('catalogFile')
-        .files[0];
-
-    if (!file) {
-        alert('Please choose a CSV file');
-        return;
-    }
-
-    document.getElementById(
-        'catalogPreview'
-    ).innerHTML =
-        'Selected: ' +
-        file.name;
-
-}
-async function uploadCatalog() {
+    
+async function previewCatalog() {
 
     const file =
         document.getElementById('catalogFile')
@@ -843,6 +826,54 @@ async function uploadCatalog() {
         `;
 
 }
+
+    async function uploadCatalog() {
+
+    if (
+        !uploadedCatalogData ||
+        uploadedCatalogData.length === 0
+    ) {
+        alert(
+            'Please Preview CSV first'
+        );
+        return;
+    }
+
+    try {
+
+        const { error } =
+            await sb
+                .from('property_catalog')
+                .upsert(
+                    uploadedCatalogData,
+                    {
+                        onConflict:'id'
+                    }
+                );
+
+        if (error)
+            throw error;
+
+        alert(
+            'Catalog updated successfully!'
+        );
+
+        await loadPropertyCatalog();
+
+    }
+    catch(err) {
+
+        console.error(err);
+
+        alert(
+            'Upload failed: ' +
+            err.message
+        );
+
+    }
+
+}
+    
 async function initApp() {
     await loadPropertyCatalog();
 
