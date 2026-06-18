@@ -445,6 +445,8 @@ function switchProperty() {
 function updateDisplay() {
     const prop = allProperties[selectedProperty];
     if (!prop) return;
+    const catalog =
+        propertyCatalog[selectedProperty];
     document.getElementById('propertySelect').value = String(selectedProperty);
     document.getElementById('currentBid').textContent = 'RM ' + Number(prop.current_price||0).toLocaleString();
     document.getElementById('currentBidder').textContent = prop.highest_bidder || 'Waiting for bids...';
