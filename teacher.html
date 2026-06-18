@@ -767,7 +767,24 @@ function checkPassword() {
         document.getElementById('gateInput').focus();
     }
 }
+function previewCatalog() {
 
+    const file =
+        document.getElementById('catalogFile')
+        .files[0];
+
+    if (!file) {
+        alert('Please choose a CSV file');
+        return;
+    }
+
+    document.getElementById(
+        'catalogPreview'
+    ).innerHTML =
+        'Selected: ' +
+        file.name;
+
+}
 async function initApp() {
     await loadPropertyCatalog();
 
