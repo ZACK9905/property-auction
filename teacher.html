@@ -692,10 +692,11 @@ function startFullAutoMode() {
                 }
             } else {
                 await sb.from('properties').update({ timer:newTimer }).eq('id', selectedProperty);
+            } 
             } catch (err) {  // ✅ 加错误捕获
             console.error('Auto mode error:', err);
             stopAutoMode();
-        }
+            }
     }, 2000);
 }
 
