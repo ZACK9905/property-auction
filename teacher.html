@@ -641,6 +641,7 @@ function startFullAutoMode() {
     document.getElementById('autoModeBadge').classList.remove('hidden');
     let lastBidCount = null; // track number of bids, not price
     autoModeInterval = setInterval(async () => {
+        try {
         await loadData();
         loadBidHistory();
         const prop = allProperties[selectedProperty];
@@ -687,9 +688,11 @@ function startFullAutoMode() {
                 }
             } else {
                 await sb.from('properties').update({ timer:newTimer }).eq('id', selectedProperty);
-            }
+            }catch (err) {  // ✅ 加错误捕获
+            console.error('Auto mode error:', err);
+            stopAutoMode();
         }
-    }, 1000);
+    }, 2000);
 }
 
 function stopAutoMode() {
@@ -896,8 +899,55 @@ async function uploadCatalog() {
         );
     }
 }
-    
-async function initApp() {
+async function setupRealtime() {
+    try {
+        if (realtimeChannel) {
+            await realtimeChannel.unsubscribe();
+        }
+
+        realtimeChannel = sb.channel('prop-changes')
+            .on('postgres_changes',
+                { event:'*', schema:'public', table:'properties' },
+                () => {
+                    loadData();
+                    loadBidHistory();
+                })
+            .on('postgres_changes',
+                { event:'INSERT', schema:'public', table:'bidders' },
+                () => {
+                    loadBidHistory();
+                })
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('✓ Realtime connected');
+                    reconnectAttempts = 0;
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.warn('⚠️ Realtime error, attempting reconnect...');
+                    attemptReconnect();
+                } else if (status === 'CLOSED') {
+                    console.warn('⚠️ Realtime closed, attempting reconnect...');
+                    attemptReconnect();
+                }
+            });
+    } catch (err) {
+        console.error('Realtime setup failed:', err);
+        attemptReconnect();
+    }
+}
+
+// ✅ 加这个新函数
+function attemptReconnect() {
+    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+        showMessage('❌ Connection lost. Refresh the page.', true);
+        return;
+    }
+    reconnectAttempts++;
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
+    console.log(`Reconnecting in ${delay}ms... (attempt ${reconnectAttempts})`);
+    setTimeout(() => setupRealtime(), delay);
+}    
+
+    async function initApp() {
     await loadPropertyCatalog();
 
     loadData();
@@ -908,19 +958,19 @@ async function initApp() {
     setInterval(loadBidHistory, 2000);
     setInterval(loadRegistrations, 15000);
 
-    sb.channel('prop-changes')
-        .on('postgres_changes',
-            { event:'*', schema:'public', table:'properties' },
-            () => {
-                loadData();
-                loadBidHistory();
-            })
-        .on('postgres_changes',
-            { event:'INSERT', schema:'public', table:'bidders' },
-            () => {
-                loadBidHistory();
-            })
-        .subscribe();
+    // ✅ 用 setupRealtime() 替代原来的 sb.channel 代码
+    setupRealtime();
+
+    // ✅ 加心跳检测
+    setInterval(async () => {
+        try {
+            const { data, error } = await sb.from('properties').select('id').limit(1);
+            if (error) throw error;
+        } catch (err) {
+            console.warn('⚠️ Heartbeat failed, reconnecting...');
+            attemptReconnect();
+        }
+    }, 10000);
 }
 
 // Auto-unlock if already authenticated this session
