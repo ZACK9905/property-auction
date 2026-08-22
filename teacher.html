@@ -362,6 +362,10 @@ let allProperties = {};
 let autoModeInterval = null;
 let propertyCatalog = {};
 let uploadedCatalogData = [];
+let realtimeChannel = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+let propNames = {};
     
 async function loadPropertyCatalog() {
 
@@ -641,7 +645,7 @@ function startFullAutoMode() {
     document.getElementById('autoModeBadge').classList.remove('hidden');
     let lastBidCount = null; // track number of bids, not price
     autoModeInterval = setInterval(async () => {
-        try {
+    try {
         await loadData();
         loadBidHistory();
         const prop = allProperties[selectedProperty];
@@ -688,7 +692,7 @@ function startFullAutoMode() {
                 }
             } else {
                 await sb.from('properties').update({ timer:newTimer }).eq('id', selectedProperty);
-            }catch (err) {  // ✅ 加错误捕获
+            } catch (err) {  // ✅ 加错误捕获
             console.error('Auto mode error:', err);
             stopAutoMode();
         }
