@@ -847,8 +847,7 @@ async function previewCatalog() {
 
 }
 
-    async function uploadCatalog() {
-
+async function uploadCatalog() {
     if (
         !uploadedCatalogData ||
         uploadedCatalogData.length === 0
@@ -858,9 +857,8 @@ async function previewCatalog() {
         );
         return;
     }
-
     try {
-
+        // 1️⃣ 上传到 property_catalog
         const { error } =
             await sb
                 .from('property_catalog')
@@ -870,28 +868,33 @@ async function previewCatalog() {
                         onConflict:'id'
                     }
                 );
-
         if (error)
             throw error;
 
+        // 2️⃣ 关键：同步到 properties 表
+        for (const item of uploadedCatalogData) {
+            await sb
+                .from('properties')
+                .update({
+                    current_price: item.opening_bid
+                })
+                .eq('id', item.id);
+        }
+
         alert(
-            'Catalog updated successfully!'
+            'Catalog updated & synced to properties! ✓'
         );
-
+        
         await loadPropertyCatalog();
-
+        await loadData();  // 刷新显示
     }
     catch(err) {
-
         console.error(err);
-
         alert(
             'Upload failed: ' +
             err.message
         );
-
     }
-
 }
     
 async function initApp() {
