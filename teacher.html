@@ -338,6 +338,20 @@ const TEACHER_SECRET = 'kl-auction-teacher-2025';
 // Single client instance — teacher secret added via fetch interceptor for DELETE calls
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+function checkPassword() {
+    const input = document.getElementById('gateInput').value;
+    const err = document.getElementById('gateError');
+    if (input === TEACHER_SECRET) {
+        document.getElementById('passwordGate').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        sessionStorage.setItem('ta', '1');
+        initApp();
+    } else {
+        err.style.display = 'block';
+        document.getElementById('gateInput').value = '';
+        document.getElementById('gateInput').focus();
+    }
+}
 // Helper: teacher-authenticated DELETE using direct fetch (bypasses dual-client warning)
 async function teacherDelete(table, filter) {
     const { field, op, value } = filter;
