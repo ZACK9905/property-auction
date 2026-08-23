@@ -959,7 +959,6 @@ function updateDisplay() {
             bidBtn.textContent = '🔨 Place Bid'; bidBtn.style.opacity = '';
         }
     }
-}
 
     const callingDiv = document.getElementById('callingStatusDiv');
     if (currentPropertyObj.stage > 0) {
@@ -980,7 +979,8 @@ function updateDisplay() {
             if (speechTexts[currentPropertyObj.stage]) speakText(speechTexts[currentPropertyObj.stage]);
         }
     } else { callingDiv.classList.add('hidden'); lastSpokenStage = 0; }
-
+}
+    
 function updateBidders() {
     if (!bidders || bidders.length === 0) {
         document.getElementById('biddersList').innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px 0">Waiting for bids...</div>';
