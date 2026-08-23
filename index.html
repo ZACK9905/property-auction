@@ -811,6 +811,13 @@ function hideSoldOverlay(){ document.getElementById('soldOverlay').classList.rem
 
 async function placeBid(){
     if (!currentPropertyObj) return;
+    
+    // ✅ 加这个检查 - 最高竞价者不能再出价
+    if (currentPropertyObj.highest_bidder === userName) {
+        showMessage('⏸️ You are the highest bidder. Wait for others to outbid you.');
+        return;
+    }
+    
     const info = propertyInfo[currentProperty] || propertyInfo[1];
     const increment = info.increment || 5000;
     const bid = Number(currentPropertyObj.current_price||0) + increment;
@@ -909,7 +916,6 @@ function updateUI(){ updateDisplay(); updateBidders(); updateParticipants(); }
 function updateDisplay() {
     if (!currentPropertyObj) return;
     const info = propertyInfo[currentProperty] || propertyInfo[1];
-
     const imgElement = document.getElementById('propertyImageElement');
     const placeholder = document.getElementById('propertyImagePlaceholder');
     if (info.imageUrl) {
@@ -919,7 +925,6 @@ function updateDisplay() {
     } else {
         imgElement.classList.add('hidden'); placeholder.style.display = 'flex'; placeholder.textContent = info.image;
     }
-
     document.getElementById('propertyAddress').textContent = info.address;
     document.getElementById('propertyDescription').textContent = info.description;
     document.getElementById('propertyDetails').innerHTML = `<span>📐 ${info.area}</span><span>💰 Market: RM ${info.marketValue.toLocaleString()}</span>`;
@@ -929,24 +934,32 @@ function updateDisplay() {
     document.getElementById('highBidder').textContent = currentPropertyObj.highest_bidder || 'Waiting...';
     document.getElementById('propertyInfo').textContent = `Property ${currentProperty} of 5`;
     document.getElementById('bidInfoText').innerHTML = `💡 Fixed increment: <strong style="color:var(--gold)">+RM ${(info.increment||5000).toLocaleString()}</strong>`;
-
     const waitingNotice = document.getElementById('waitingNotice');
     const bidBtn = document.getElementById('bidBtn');
     const isRegisteredForCurrent = (userPropertyId === currentProperty);
-    const canBid = currentPropertyObj.bidding_started && currentPropertyObj.status !== 'sold' && hasJoinedCurrentProperty && !isSystemAccount && isRegisteredForCurrent;
-
+    
+    // ✅ 加这一行：检查是否是最高竞价者
+    const isHighestBidder = currentPropertyObj.highest_bidder === userName;
+    
+    // ✅ 改这一行：加入 isHighestBidder 检查
+    const canBid = currentPropertyObj.bidding_started && currentPropertyObj.status !== 'sold' && hasJoinedCurrentProperty && !isSystemAccount && isRegisteredForCurrent && !isHighestBidder;
+    
     if (!currentPropertyObj.bidding_started && currentPropertyObj.status === 'open') {
         waitingNotice.classList.remove('hidden'); bidBtn.disabled = true;
     } else {
         waitingNotice.classList.add('hidden'); bidBtn.disabled = !canBid;
         if (isSystemAccount || !isRegisteredForCurrent) {
             bidBtn.textContent = '👁️ Observer — Cannot Bid'; bidBtn.style.opacity = '0.6';
+        // ✅ 加这个条件：如果是最高竞价者
+        } else if (isHighestBidder) {
+            bidBtn.textContent = '⏸️ You are highest bidder'; bidBtn.style.opacity = '0.5';
         } else if (!currentPropertyObj.bidding_started) {
             bidBtn.textContent = '⏳ Waiting to start...'; bidBtn.style.opacity = '';
         } else {
             bidBtn.textContent = '🔨 Place Bid'; bidBtn.style.opacity = '';
         }
     }
+}
 
     const callingDiv = document.getElementById('callingStatusDiv');
     if (currentPropertyObj.stage > 0) {
