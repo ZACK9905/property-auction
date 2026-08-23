@@ -450,7 +450,7 @@ async function loadData() {
         if (data && data.length > 0) {
             allProperties = {};
             data.forEach(p => allProperties[p.id] = p);
-            currentPropertyObj = allProperties[currentProperty];
+            currentPropertyObj = allProperties[selectedProperty];
             updateDisplay();
         }
     } catch (err) { showMessage('Connection error: ' + err.message, true); }
