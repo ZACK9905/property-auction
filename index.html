@@ -808,28 +808,140 @@ function showSoldOverlay(){
     document.getElementById('soldOverlay').classList.add('active');
 }
 function hideSoldOverlay(){ document.getElementById('soldOverlay').classList.remove('active'); }
-
-async function placeBid(){
-    if (!currentPropertyObj) return;
     
-    // ✅ 加这个检查 - 最高竞价者不能再出价
+let bidInFlight = false;
+    
+async function placeBid(){
+    if (bidInFlight || !currentPropertyObj) return;
+
+    // Prevent multiple clicks while the current request is still processing
+    bidInFlight = true;
+
+    // Highest bidder cannot bid again
     if (currentPropertyObj.highest_bidder === userName) {
         showMessage('⏸️ You are the highest bidder. Wait for others to outbid you.');
+        bidInFlight = false;
         return;
     }
-    
-    const info = propertyInfo[currentProperty] || propertyInfo[1];
-    const increment = info.increment || 5000;
-    const bid = Number(currentPropertyObj.current_price||0) + increment;
+
+    // Remember the price this player currently sees
+    const expectedPrice = Number(currentPropertyObj.current_price || 0);
+
     try {
-        playBidSound();
-        const { error: propErr } = await sb.from('properties').update({ current_price: bid, highest_bidder: userName }).eq('id', currentProperty);
-        if (propErr) { showMessage('Bid failed: ' + propErr.message, true); return; }
-        const { error: bidErr } = await sb.from('bidders').insert([{ property_id: currentProperty, bidder_name: userName, bid_amount: bid }]);
-        if (bidErr) console.error('Bid history error:', bidErr);
-        showMessage(`✓ ${userName} bid RM ${bid.toLocaleString()}`);
-        await loadData();
-    } catch(err){ showMessage('Error: ' + err.message, true); }
+
+        // Send the bid request to Supabase RPC
+        const { data, error } = await sb.rpc('place_bid', {
+            p_property_id: Number(currentProperty),
+            p_bidder_name: userName,
+            p_expected_price: expectedPrice
+        });
+
+        // RPC itself failed
+        if (error) {
+            showMessage('Bid failed: ' + error.message, true);
+            return;
+        }
+
+        const result = data;
+
+        // Bid accepted
+        if (result && result.success === true) {
+
+            // Only play sound after the bid is actually accepted
+            playBidSound();
+
+            showMessage(
+                `✓ ${userName} bid RM ${Number(result.bid_amount).toLocaleString()}`
+            );
+
+            await loadData();
+            return;
+        }
+
+        // Another player got the bid first
+        if (result && result.reason === 'bid_taken') {
+
+            showMessage(
+                '⚡ Another player got this bid first. Please press Bid again.'
+            );
+
+            await loadData();
+            return;
+        }
+
+        // Already highest bidder
+        if (result && result.reason === 'already_highest') {
+
+            showMessage(
+                '⏸️ You are the highest bidder. Wait for others to outbid you.'
+            );
+
+            await loadData();
+            return;
+        }
+
+        // Auction closed
+        if (result && result.reason === 'auction_closed') {
+
+            showMessage(
+                '⛔ This auction is not open.',
+                true
+            );
+
+            await loadData();
+            return;
+        }
+
+        // Bidding has not started
+        if (result && result.reason === 'bidding_not_started') {
+
+            showMessage(
+                '⏳ Bidding has not started yet.',
+                true
+            );
+
+            await loadData();
+            return;
+        }
+
+        // Invalid increment
+        if (result && result.reason === 'invalid_increment') {
+
+            showMessage(
+                '⚠️ Invalid bid increment.',
+                true
+            );
+
+            return;
+        }
+
+        // Other RPC error
+        if (result && result.message) {
+
+            showMessage(
+                'Bid failed: ' + result.message,
+                true
+            );
+
+            await loadData();
+            return;
+        }
+
+        // Unknown response
+        showMessage('Bid failed. Please try again.', true);
+
+    } catch (err) {
+
+        showMessage(
+            'Error: ' + err.message,
+            true
+        );
+
+    } finally {
+
+        // Allow the next bid attempt after this request is finished
+        bidInFlight = false;
+    }
 }
 
 function showMessage(text, isErr=false){
