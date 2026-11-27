@@ -625,6 +625,7 @@ async function resetAllProperties() {
         stopAutoMode();
         await teacherDelete('bidders',      { field:'id', op:'neq', value:0 });
         await teacherDelete('participants', { field:'id', op:'neq', value:0 });
+        const resetAt = new Date().toISOString();
         for (const id in propertyCatalog) {
 
     await sb.from('properties').update({
@@ -643,6 +644,7 @@ async function resetAllProperties() {
         release_at:null,
         sold_at:null,
         opened_by_teacher:false,
+        reset_at: resetAt,
         participant_count:0
 
     }).eq('id', id);
