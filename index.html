@@ -737,17 +737,7 @@ async function loadData(){
     try {
         const { data: allProps, error: propsError } = await sb.from('properties').select('*').order('id', { ascending: true });
         if (propsError || !allProps || allProps.length === 0) return;
-
-        // Check if student has been kicked out after teacher reset
-        if (userName && !isSystemAccount) {
-            const mine = allProps.find(p => p.id === userPropertyId);
-
-            if (mine && !mine.participant_count) {
-                location.reload();
-                return;
-            }
-        }
-        
+               
         // Only follow bidding_started=true — never auto-jump on our own
         const biddingNow = allProps.find(p => p.bidding_started === true && p.status !== 'sold');
 
