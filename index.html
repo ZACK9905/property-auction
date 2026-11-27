@@ -676,6 +676,7 @@ let hasJoinedCurrentProperty = false;
 const SYSTEM_PIN = '0000';
 let isSystemAccount = false;
 let userPropertyId = null;
+let loginResetAt;
 
 async function joinAuction(){
     const pin = document.getElementById('userPinInput').value.trim();
@@ -737,7 +738,11 @@ async function loadData(){
     try {
         const { data: allProps, error: propsError } = await sb.from('properties').select('*').order('id', { ascending: true });
         if (propsError || !allProps || allProps.length === 0) return;
-               
+        if (userName && !isSystemAccount) {
+    const mark = allProps.map(p => p.reset_at || '').sort().pop();
+    if (loginResetAt === undefined) loginResetAt = mark;
+    else if (mark !== loginResetAt) { location.reload(); return; }
+}       
         // Only follow bidding_started=true — never auto-jump on our own
         const biddingNow = allProps.find(p => p.bidding_started === true && p.status !== 'sold');
 
