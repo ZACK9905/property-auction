@@ -630,7 +630,7 @@ async function resetAllProperties() {
     await sb.from('properties').update({
 
         current_price:
-            propertyCatalog[id].opening_bid,
+            propertyCatalog[id].openingBid,
 
         highest_bidder:null,
         stage:0,
