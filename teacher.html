@@ -227,7 +227,7 @@
                 </div>
                 <div style="text-align:right">
                     <div class="bid-display-label">Participants</div>
-                    <div class="bid-display-amount" style="font-size:1.3rem" id="participantCount">0/12</div>
+                    <div class="bid-display-amount" style="font-size:1.3rem" id="participantCount">0/15</div>
                     <div class="bid-display-bidder" id="totalBids">0 bids</div>
                 </div>
             </div>
@@ -470,7 +470,7 @@ function updateDisplay() {
     document.getElementById('propertySelect').value = String(selectedProperty);
     document.getElementById('currentBid').textContent = 'RM ' + Number(prop.current_price||0).toLocaleString();
     document.getElementById('currentBidder').textContent = prop.highest_bidder || 'Waiting for bids...';
-    document.getElementById('participantCount').textContent = (prop.participant_count||0) + '/12';
+    document.getElementById('participantCount').textContent = (prop.participant_count||0) + '/15';
     document.getElementById('propertyAddress')
     .textContent =
     catalog?.address || '-';
@@ -745,7 +745,7 @@ async function loadRegistrations() {
     data.forEach(r => { if (!grouped[r.property_id]) grouped[r.property_id] = []; grouped[r.property_id].push(r); });
     el.innerHTML = Object.entries(grouped).map(([pid, regs]) =>
         '<div style="margin-bottom:16px"><div style="font-size:.75rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Property ' + pid + ' — ' +
-(propertyCatalog[pid]?.address || ('Property ' + pid)) + ' <span style="color:var(--muted);font-weight:400">(' + regs.length + '/12)</span></div>' +
+(propertyCatalog[pid]?.address || ('Property ' + pid)) + ' <span style="color:var(--muted);font-weight:400">(' + regs.length + '/15)</span></div>' +
         '<table class="reg-table"><thead><tr><th>#</th><th>Name</th><th>PIN</th><th></th></tr></thead><tbody>' +
         regs.map((r,i) =>
             '<tr><td style="color:var(--muted)">' + (i+1) + '</td><td style="color:white;font-weight:500">' + r.full_name + '</td>' +
