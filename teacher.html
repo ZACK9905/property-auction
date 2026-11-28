@@ -872,7 +872,35 @@ async function previewCatalog() {
         `;
 
 }
+async function uploadAttendees() {
+    const file = document.getElementById('attendeeFile').files[0];
+    if (!file) { alert('Please choose a CSV file'); return; }
+    const names = {};
+    (await file.text()).replace(/^\uFEFF/, '').split('\n').slice(1).forEach(row => {
+        const n = row.split(',')[0].trim();
+        if (n) names[n.toLowerCase()] = n;
+    });
+    const list = Object.values(names).map(n => ({ full_name: n }));
+    if (list.length === 0) { alert('No names found in file'); return; }
+    if (!confirm(`Replace attendee list with ${list.length} names?`)) return;
 
+    const headers = {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'x-teacher-secret': TEACHER_SECRET,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+    };
+    try {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/attendees?full_name=not.is.null`, { method: 'DELETE', headers });
+        if (!res.ok) throw new Error(await res.text());
+        res = await fetch(`${SUPABASE_URL}/rest/v1/attendees`, { method: 'POST', headers, body: JSON.stringify(list) });
+        if (!res.ok) throw new Error(await res.text());
+        document.getElementById('attendeeStatus').textContent = `✓ ${list.length} attendees loaded`;
+    } catch (err) {
+        alert('Upload failed: ' + err.message);
+    }
+}
 async function uploadCatalog() {
     if (
         !uploadedCatalogData ||
