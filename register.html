@@ -315,7 +315,7 @@
     <!-- STEP 1: Select Property -->
     <div class="card" id="step1">
         <div class="card-title">Choose a Property</div>
-        <div class="card-sub">Select the property you'd like to bid on. Maximum 12 participants per property.</div>
+        <div class="card-sub">Select the property you'd like to bid on. Maximum 15 participants per property.</div>
         
         <!-- ✅ 新增：限制提示 -->
         <div class="limit-notice">
@@ -436,9 +436,9 @@ function renderPropertyGrid() {
     grid.innerHTML = '';
     Object.entries(propertyInfo).forEach(([id, info]) => {
         const count = participantCounts[id] || 0;
-        const isFull = count >= 12;
+        const isFull = count >= 15;
         const isSelected = parseInt(id) === selectedPropertyId;
-        const countColor = count >= 10 ? 'warn' : '';
+        const countColor = count >= 13 ? 'warn' : '';
 
         const card = document.createElement('div');
         card.className = 'property-option' + (isFull ? ' full' : '') + (isSelected ? ' selected' : '');
@@ -473,7 +473,7 @@ function renderPropertyGrid() {
             <div class="prop-footer">
                 ${isFull
                     ? '<span class="full-badge">Full</span>'
-                    : `<span class="prop-count ${countColor}">${count}/12 registered</span>`
+                    : `<span class="prop-count ${countColor}">${count}/15 registered</span>`
                 }
                 ${isSelected ? '<span style="color:var(--gold);font-size:0.8rem;font-weight:700">✓ Selected</span>' : ''}
             </div>`;
@@ -530,7 +530,7 @@ async function submitRegistration() {
         const { data: existing } = await sb.from('registrations').select('id').eq('property_id', selectedPropertyId).ilike('full_name', name).maybeSingle();
         if (existing) { err.textContent = `"${name}" is already registered for this property.`; err.style.display = 'block'; btn.disabled = false; btn.innerHTML = 'Register & Get PIN'; return; }
         const count = participantCounts[selectedPropertyId] || 0;
-        if (count >= 12) { err.textContent = 'This property is full (12/12). Please choose another.'; err.style.display = 'block'; btn.disabled = false; btn.innerHTML = 'Register & Get PIN'; return; }
+        if (count >= 15) { err.textContent = 'This property is full (15/15). Please choose another.'; err.style.display = 'block'; btn.disabled = false; btn.innerHTML = 'Register & Get PIN'; return; }
 
         let pin, attempts = 0;
         while (attempts < 20) {
