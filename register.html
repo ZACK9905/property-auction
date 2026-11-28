@@ -517,34 +517,29 @@ function generatePin() {
 }
 
 async function submitRegistration() {
+    const btn = document.getElementById('registerBtn');
+    if (btn.disabled) return;
     const name = document.getElementById('fullNameInput').value.trim();
     const err = document.getElementById('step2Error');
     if (!name) { err.textContent = 'Please enter your full name.'; err.style.display = 'block'; return; }
     if (name.length < 3) { err.textContent = 'Please enter your full name (at least 3 characters).'; err.style.display = 'block'; return; }
     err.style.display = 'none';
-    const btn = document.getElementById('registerBtn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Registering...';
 
     try {
-        const { data: existing } = await sb.from('registrations').select('id').eq('property_id', selectedPropertyId).ilike('full_name', name).maybeSingle();
-        if (existing) { err.textContent = `"${name}" is already registered for this property.`; err.style.display = 'block'; btn.disabled = false; btn.innerHTML = 'Register & Get PIN'; return; }
-        const count = participantCounts[selectedPropertyId] || 0;
-        if (count >= 15) { err.textContent = 'This property is full (15/15). Please choose another.'; err.style.display = 'block'; btn.disabled = false; btn.innerHTML = 'Register & Get PIN'; return; }
-
-        let pin, attempts = 0;
-        while (attempts < 20) {
-            pin = generatePin();
-            const { data: pinExists } = await sb.from('registrations').select('id').eq('pin', pin).maybeSingle();
-            if (!pinExists) break;
-            attempts++;
+        for (let i = 0; i < 5; i++) {
+            const pin = generatePin();
+            const { error } = await sb.from('registrations').insert([{ property_id: selectedPropertyId, full_name: name, pin: pin }]);
+            if (!error) return showSuccess(name, pin);
+            if (error.message.includes('property_full')) { loadParticipantCounts(); throw new Error('This property is full (15/15). Please go back and choose another.'); }
+            if (error.message.includes('not_on_list')) throw new Error('Your name is not on the attendee list. Please enter your full name exactly as given to the organiser.');
+            if (error.code !== '23505') throw new Error('Registration failed: ' + error.message);
+            if (!error.message.includes('pin')) throw new Error(`"${name}" is already registered. Each person can only register once.`);
         }
-
-        const { error } = await sb.from('registrations').insert([{ property_id: selectedPropertyId, full_name: name, pin: pin }]);
-        if (error) throw error;
-        showSuccess(name, pin);
+        throw new Error('Registration failed. Please try again.');
     } catch (e) {
-        err.textContent = 'Registration failed: ' + e.message;
+        err.textContent = e.message;
         err.style.display = 'block';
         btn.disabled = false;
         btn.innerHTML = 'Register & Get PIN';
