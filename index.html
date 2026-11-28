@@ -537,7 +537,7 @@
     </div>
     <div class="topbar-right">
         <div class="user-chip">👤 <span id="displayName"></span></div>
-        <div class="participant-chip">👥 <span id="participantCount">0</span>/12</div>
+        <div class="participant-chip">👥 <span id="participantCount">0</span>/15</div>
     </div>
 </div>
 
@@ -623,7 +623,7 @@ const SUPABASE_URL = 'https://ubxfggqfnhvqyatgiolx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGZnZ3Fmbmh2cXlhdGdpb2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MzM3NDEsImV4cCI6MjA4MzUwOTc0MX0.fxlPFVuHlwLG56bPOeP2s6qsoQn5aEgeBrdHfkvjvyM';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const MAX_PARTICIPANTS = 12;
+const MAX_PARTICIPANTS = 15;
 let propertyInfo = {
     1: { address:'Taman Puteri Subang', image:'🏠', imageUrl:'puterisubang.png', openingBid:450000, increment:2000, description:'Popular residential area', area:'1302 sq.ft', marketValue:600000 },
     2: { address:'Setia Alam', image:'🏡', imageUrl:'setiaalam.png', openingBid:550000, increment:2000, description:'Modern family home', area:'1173.28 sq.ft', marketValue:750000 },
@@ -706,7 +706,7 @@ async function joinAuction(){
         if (existing) { hasJoinedCurrentProperty = true; proceedToAuction(); return; }
         const { error } = await sb.from('participants').insert([{ property_id: userPropertyId, participant_name: userName, is_active: true }]);
         if (error) {
-            if (error.message.includes('房间已满')) { userName = ''; userPropertyId = null; pinErr.textContent = 'This auction room is full (12/12).'; pinErr.style.display = 'block'; }
+            if (error.message.includes('房间已满')) { userName = ''; userPropertyId = null; pinErr.textContent = 'This auction room is full (15/15).'; pinErr.style.display = 'block'; }
             else if (error.code === '23505') { hasJoinedCurrentProperty = true; proceedToAuction(); }
             else { userName = ''; userPropertyId = null; pinErr.textContent = 'Failed to join: ' + error.message; pinErr.style.display = 'block'; }
             return;
